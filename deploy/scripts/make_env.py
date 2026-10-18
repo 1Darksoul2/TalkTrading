@@ -51,6 +51,8 @@ def main():
         "SITE_ADDRESS": site,
         "PUBLIC_URL": public,
         "ACME_EMAIL": args.email or "unused@example.invalid",   # certificates are only requested for a real domain
+        # Where testers send feedback, reports and privacy requests (shown in the app).
+        "SUPPORT_EMAIL": args.email or "",
         "HTTP_PORT": http_port,
         "HTTPS_PORT": https_port,
         "POSTGRES_USER": "talktrading",
