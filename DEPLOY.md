@@ -10,7 +10,7 @@ Everything runs on **one small Linux server** with Docker. One address (`https:/
 
 | What | Recommended | Why |
 |---|---|---|
-| Server | **Hetzner Cloud CX32** (4 vCPU, 8 GB RAM, ~€8/month), Ubuntu 24.04. The **CX22** (4 GB, ~€5/month) also works for a small test group. | Two Java services + PostgreSQL + five Python services need ~3 GB. Hetzner is the cheapest reliable option; DigitalOcean / AWS Lightsail work the same way at about twice the price. |
+| Server | **Hetzner Cloud CX32** (4 vCPU, 8 GB RAM, ~€8/month), Ubuntu 24.04. The **CX22** (4 GB, ~€5/month) also works for a small test group. | Two Java services + PostgreSQL + six Python services need ~3 GB. Hetzner is the cheapest reliable option; DigitalOcean / AWS Lightsail work the same way at about twice the price. |
 | Domain | Any registrar, e.g. **Cloudflare Registrar** or **Namecheap** (~$10/year for a `.com`) | Needed for HTTPS. |
 
 When creating the server, add your **SSH key** (Hetzner shows how) instead of a password.
@@ -95,6 +95,7 @@ Internet ──HTTPS──> gateway (Caddy)  ── /            the React app
                                      ── /svc/news    News
                                      ── /svc/chart   Prices
                                      ── /svc/e2ee    Encrypted chat (+ WebSocket)
+                                     ── /svc/reel    Reels (short videos, uploads)
                                      ── /svc/community  ┐ login checked by the gateway,
                                      ── /svc/explore    ┘ identity set by the gateway
               PostgreSQL (one database per service) · Redis (cache) · private network only
@@ -110,14 +111,26 @@ What the gateway does for safety:
 ## Known limits (because Post, Chat, Explore and Community are not changed)
 
 - **Password rules are enforced by the sign-up form only** (8+ characters, letters and numbers). The Post API itself accepts any password, so someone calling the API directly could still set a weak one.
-- **Logins last 7 days** (`LOGIN_LIFETIME_MINUTES` in `.env`). There is no "log out everywhere" or password reset by email; if a token leaks it stays valid until it expires. Changing `JWT_SECRET` logs everyone out.
-- **No email at all** (no verification, no password reset). A lost password currently needs manual help.
+- **Logins last 7 days** (`LOGIN_LIFETIME_MINUTES` in `.env`). There is no "log out everywhere"; if a token leaks it stays valid until it expires. Changing `JWT_SECRET` logs everyone out.
+- **Password reset needs a mail server.** "Forgot password" emails a one-time link (valid 30 minutes). Add `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` and `SMTP_FROM` to `.env` (any provider: Postmark, Mailgun, Gmail app password...) and run `docker compose up -d`. Until then the link is only written to the Post service log (`docker compose logs post | grep reset-password`). There is no email verification at sign-up.
 - **Community roles:** moderator/owner actions inside a community still rely on Community's own data; nobody can fake a role header any more.
+
+## Updating a server that was set up before Reels existed
+
+The `reel` database is created automatically only on a brand-new database volume. On an existing server, run once:
+
+```bash
+cd /opt/talktrading/deploy
+docker compose exec db psql -U "$(grep ^POSTGRES_USER .env | cut -d= -f2)" -d postgres -c "CREATE DATABASE reel;"
+echo "REEL_SERVICE_API_KEY=$(python3 -c 'import secrets; print(secrets.token_hex(32))')" >> .env
+docker compose up -d --build
+```
 
 ## Before inviting people
 
 - [ ] Site opens on `https://` with a valid certificate; `http://` redirects to it.
-- [ ] Sign up, post with a photo, story, chat between two accounts, news, chart, community, explore all work.
+- [ ] Sign up, post with a photo, story, reel, chat between two accounts, news, chart, community, explore all work.
+- [ ] "Forgot password" delivers an email (SMTP settings in `.env`).
 - [ ] `docker compose ps` shows every service `running` / `healthy`.
 - [ ] A backup has run once and you copied `.env` somewhere safe.
 - [ ] UptimeRobot monitor created.

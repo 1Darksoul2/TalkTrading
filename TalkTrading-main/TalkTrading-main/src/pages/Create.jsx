@@ -4,7 +4,12 @@ import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import TabBar from '../components/ui/TabBar'
 import { useAuth } from '../context/AuthContext'
-import mockTickers from '../data/mockTickers'
+import { postService } from '../services/postService'
+import { storyService } from '../services/storyService'
+import { reelService } from '../services/reelService'
+import { getSymbols } from '../services/chartService'
+import { useLiveQuotes } from '../hooks/useLiveQuotes'
+import { DEFAULT_AVATAR } from '../utils/defaultAvatar'
 
 const TYPES = [
   { id: 'post', label: 'Post' },
@@ -16,7 +21,7 @@ const TYPES = [
 const RULES = {
   post: { accept: 'image/*', maxFiles: 4, maxText: 500, mediaRequired: false, redirect: '/', hint: 'Up to 4 images' },
   story: { accept: 'image/*,video/*', maxFiles: 1, maxText: 120, mediaRequired: true, redirect: '/', hint: 'One photo or video, 9:16 works best' },
-  reel: { accept: 'video/*', maxFiles: 1, maxText: 300, mediaRequired: true, redirect: '/reels', hint: 'One vertical video, up to 60s' },
+  reel: { accept: 'video/*', maxFiles: 1, maxText: 300, mediaRequired: true, redirect: '/reels', hint: 'One vertical video, up to 3 min' },
 }
 
 const SENTIMENTS = [
@@ -26,7 +31,56 @@ const SENTIMENTS = [
 ]
 
 const MAX_TICKERS = 3
-const fakeDelay = () => new Promise(resolve => setTimeout(resolve, 700))
+const MAX_REEL_SECONDS = 180
+
+// Duration, size and a poster frame for a reel, read in the browser before upload.
+// A browser that cannot decode the codec may never answer, so every step has a deadline:
+// without metadata the file is refused; without a decodable frame the reel goes up without a poster.
+function inspectVideo(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const video = document.createElement('video')
+    video.preload = 'auto'
+    video.muted = true
+    video.playsInline = true
+    let info = null
+    let settled = false
+    const timers = []
+    const finish = (fn, value) => {
+      if (settled) return
+      settled = true
+      timers.forEach(clearTimeout)
+      video.removeAttribute('src')
+      video.load()
+      URL.revokeObjectURL(url)
+      fn(value)
+    }
+    const unreadable = () => finish(reject, new Error('This browser cannot read this video. Try an MP4 (H.264) or WebM file.'))
+    video.onerror = unreadable
+    timers.push(setTimeout(unreadable, 15000))
+    video.onloadedmetadata = () => {
+      if (!Number.isFinite(video.duration) || video.duration <= 0) return unreadable()
+      info = { duration: video.duration, width: video.videoWidth || null, height: video.videoHeight || null, poster: null }
+      timers.push(setTimeout(() => finish(resolve, info), 5000))
+      video.currentTime = Math.min(1, video.duration / 2)
+    }
+    video.onseeked = () => {
+      if (!video.videoWidth) return finish(resolve, info)
+      const canvas = document.createElement('canvas')
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+      canvas.getContext('2d').drawImage(video, 0, 0)
+      canvas.toBlob(poster => finish(resolve, { ...info, poster }), 'image/jpeg', 0.85)
+    }
+    video.src = url
+  })
+}
+
+function aspectRatio(w, h) {
+  const gcd = (a, b) => (b ? gcd(b, a % b) : a)
+  const d = gcd(w, h) || 1
+  return `${w / d}:${h / d}`
+}
 
 export default function Create() {
   const [searchParams] = useSearchParams()
@@ -39,9 +93,16 @@ export default function Create() {
   const [sentiment, setSentiment] = useState(null)
   const [sharing, setSharing] = useState(false)
   const [toast, setToast] = useState('')
+  const [symbols, setSymbols] = useState([])
+  const [profile, setProfile] = useState(null)
   const fileInput = useRef(null)
   const navigate = useNavigate()
   const { user } = useAuth()
+
+  useEffect(() => {
+    getSymbols().then(data => setSymbols(data.items), err => setToast(`Tickers unavailable: ${err.message}`))
+    postService.getMyProfile().then(setProfile, err => console.error('Could not load your profile:', err))
+  }, [])
 
   const rules = RULES[type]
 
@@ -52,7 +113,7 @@ export default function Create() {
 
   useEffect(() => {
     if (!toast) return
-    const id = setTimeout(() => setToast(''), 1800)
+    const id = setTimeout(() => setToast(''), 4000)
     return () => clearTimeout(id)
   }, [toast])
 
@@ -78,6 +139,7 @@ export default function Create() {
     if (!accepted.length) return
 
     const next = accepted.map(f => ({
+      file: f,
       url: URL.createObjectURL(f),
       kind: f.type.startsWith('video') ? 'video' : 'image',
       name: f.name,
@@ -102,7 +164,7 @@ export default function Create() {
   }
 
   const tickerMatches = tickerQuery.trim()
-    ? mockTickers
+    ? symbols
         .filter(t => !tickers.includes(t.symbol))
         .filter(t =>
           t.symbol.toLowerCase().includes(tickerQuery.trim().toLowerCase()) ||
@@ -110,6 +172,7 @@ export default function Create() {
         )
         .slice(0, 5)
     : []
+  const matchQuotes = Object.fromEntries(useLiveQuotes(tickerMatches.map(t => t.symbol)).quotes.map(q => [q.symbol, q]))
 
   const addTicker = (symbol) => {
     if (tickers.length >= MAX_TICKERS) return
@@ -120,17 +183,55 @@ export default function Create() {
   const canShare = !sharing &&
     (rules.mediaRequired ? media.length > 0 : text.trim().length > 0 || media.length > 0)
 
+  const publishPost = () => {
+    // Tickers and sentiment travel in the caption, where the feed and hashtag pages pick them up.
+    const missing = tickers.filter(s => !text.toUpperCase().includes(`$${s}`))
+    const tag = sentiment ? ` #${SENTIMENTS.find(s => s.id === sentiment).label}` : ''
+    const caption = `${missing.map(s => `$${s}`).join(' ')}${missing.length ? ' ' : ''}${text.trim()}${tag}`.trim()
+    return postService.createPostWithMedia({ caption }, media.map(m => m.file))
+  }
+
+  const publishStory = async () => {
+    const uploaded = await storyService.uploadMedia(media[0].file).promise
+    return storyService.createStory({ media_id: uploaded.media_id, caption: text.trim() || null })
+  }
+
+  const publishReel = async () => {
+    const file = media[0].file
+    const info = await inspectVideo(file)
+    if (info.duration > MAX_REEL_SECONDS) throw new Error('Reels can be up to 3 minutes long.')
+    const uploaded = await reelService.upload(file, info.poster)
+    return reelService.create({
+      caption: text.trim() || null,
+      tags: tickers,
+      media: {
+        video_url: uploaded.video_url,
+        thumbnail_url: uploaded.thumbnail_url,
+        duration: Math.max(0.1, Number(info.duration.toFixed(2))),
+        ...(info.width && info.height
+          ? { width: info.width, height: info.height, aspect_ratio: aspectRatio(info.width, info.height) }
+          : {}),
+        file_size_bytes: uploaded.file_size_bytes,
+        mime_type: uploaded.mime_type,
+      },
+    })
+  }
+
   const share = async () => {
     if (!canShare) return
     setSharing(true)
-    // No backend yet: pretend to upload, then send the user where the content lives
-    await fakeDelay()
-    setToast(`${TYPES.find(t => t.id === type).label} shared`)
-    setTimeout(() => navigate(rules.redirect), 900)
+    try {
+      await { post: publishPost, story: publishStory, reel: publishReel }[type]()
+      setToast(`${TYPES.find(t => t.id === type).label} shared`)
+      setTimeout(() => navigate(rules.redirect), 900)
+    } catch (err) {
+      setToast(err.message)
+      setSharing(false)
+    }
   }
 
-  const displayName = user?.displayName || 'You'
-  const username = user?.username || 'you'
+  const displayName = profile?.display_name || user?.username || ''
+  const username = user?.username || ''
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-6">
@@ -260,9 +361,11 @@ export default function Create() {
                             <span className="font-mono font-semibold text-sm text-on-surface">{t.symbol}</span>
                             <span className="ml-2 text-xs text-on-surface-muted">{t.name}</span>
                           </span>
-                          <span className={`text-xs font-mono ${t.changePercent >= 0 ? 'text-bullish' : 'text-bearish'}`}>
-                            {t.changePercent >= 0 ? '+' : ''}{t.changePercent}%
-                          </span>
+                          {matchQuotes[t.symbol]?.change_percent != null && (
+                            <span className={`text-xs font-mono ${matchQuotes[t.symbol].change_percent >= 0 ? 'text-bullish' : 'text-bearish'}`}>
+                              {matchQuotes[t.symbol].change_percent >= 0 ? '+' : ''}{matchQuotes[t.symbol].change_percent.toFixed(2)}%
+                            </span>
+                          )}
                         </button>
                       ))}
                     </div>
@@ -306,9 +409,7 @@ export default function Create() {
           {type === 'post' ? (
             <Card className="p-4">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold uppercase">
-                  {displayName[0]}
-                </div>
+                <img src={profile ? postService.avatarFor(profile) : DEFAULT_AVATAR} alt="" className="w-10 h-10 rounded-full object-cover" />
                 <div>
                   <div className="text-sm font-semibold text-on-surface">{displayName}</div>
                   <div className="text-xs text-on-surface-muted">@{username} · now</div>

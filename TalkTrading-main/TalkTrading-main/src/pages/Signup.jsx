@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import AuthLayout, { authColors } from '../components/auth/AuthLayout'
 import AuthField from '../components/auth/AuthField'
 import SubmitButton from '../components/auth/SubmitButton'
+import FormError from '../components/auth/FormError'
 import { useAuth } from '../context/AuthContext'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -29,6 +30,7 @@ export default function Signup() {
   const [agreed, setAgreed] = useState(false)
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
+  const [formError, setFormError] = useState('')
 
   const set = (key) => (value) => {
     setForm(prev => ({ ...prev, [key]: value }))
@@ -56,9 +58,15 @@ export default function Signup() {
     const e = validate()
     if (Object.keys(e).length) { setErrors(e); return }
     setErrors({})
+    setFormError('')
     setSubmitting(true)
-    await signup({ fullName: form.fullName.trim(), username: form.username, email: form.email.trim() })
-    navigate('/', { replace: true })
+    try {
+      await signup({ fullName: form.fullName.trim(), username: form.username, email: form.email.trim(), password: form.password })
+      navigate('/', { replace: true })
+    } catch (err) {
+      setFormError(err.message)
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -118,6 +126,7 @@ export default function Signup() {
           {errors.agreed && <span className="text-xs" style={{ color: authColors.error }}>{errors.agreed}</span>}
         </div>
 
+        <FormError message={formError} />
         <SubmitButton submitting={submitting} label="Create account" busyLabel="Creating account…" />
       </form>
     </AuthLayout>

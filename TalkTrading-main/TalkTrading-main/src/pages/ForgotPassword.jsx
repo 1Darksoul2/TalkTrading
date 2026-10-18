@@ -19,9 +19,14 @@ export default function ForgotPassword() {
     if (!EMAIL_RE.test(email.trim())) { setError('Enter the email you signed up with.'); return }
     setError('')
     setSubmitting(true)
-    await requestPasswordReset(email.trim())
-    setSubmitting(false)
-    setSent(true)
+    try {
+      await requestPasswordReset(email.trim())
+      setSent(true)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const backToLogin = (
