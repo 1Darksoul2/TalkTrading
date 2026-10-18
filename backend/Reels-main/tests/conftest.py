@@ -1,5 +1,6 @@
 import pytest
 import os
+import tempfile
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -9,6 +10,7 @@ TEST_DB_FILE = "./test_reel.db"
 os.environ["DATABASE_URL"] = f"sqlite:///{TEST_DB_FILE}"
 os.environ["JWT_SECRET_KEY"] = "test_super_secret_jwt_key_12345"
 os.environ["SERVICE_API_KEY"] = "test_service_secret_key"
+os.environ["MEDIA_DIR"] = tempfile.mkdtemp(prefix="reel-media-")
 
 from app.db.base import Base
 from app.db.session import get_db

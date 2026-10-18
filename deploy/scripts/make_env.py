@@ -57,6 +57,8 @@ def main():
         "POSTGRES_PASSWORD": secrets.token_hex(24),
         # Signs every login token; shared by Post (issues them) and Story/News/Chat (check them).
         "JWT_SECRET": secrets.token_hex(32),
+        # Lets trusted internal callers moderate reels (never sent to browsers).
+        "REEL_SERVICE_API_KEY": secrets.token_hex(32),
         # How long a login lasts (minutes). 10080 = 7 days.
         "LOGIN_LIFETIME_MINUTES": "10080",
         "NEWS_PROVIDER": "finnhub",

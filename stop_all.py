@@ -1,13 +1,13 @@
 """
 TalkTrading - Stop All Microservices & Frontend
-Finds and terminates any processes listening on ports 8000-8004, 8080, 8083 and 5173.
+Finds and terminates any processes listening on ports 8000-8005, 8080, 8083 and 5173.
 """
 
 import os
 import sys
 import subprocess
 
-PORTS = [8000, 8001, 8002, 8003, 8004, 8080, 8083, 5173]
+PORTS = [8000, 8001, 8002, 8003, 8004, 8005, 8080, 8083, 5173]
 
 def get_pids_for_port_windows(port: int):
     pids = set()

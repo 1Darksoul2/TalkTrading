@@ -44,7 +44,7 @@ def register_user(db: Session, user: UserCreate):
         id=new_id,
         author_id=author_id,
         username=username,
-        display_name=username,
+        display_name=(user.display_name or "").strip()[:64] or username,
         email=email,
         hashed_password=hash_password(user.password),
     )
@@ -66,14 +66,13 @@ def register_user(db: Session, user: UserCreate):
 
 def authenticate_user(
     db: Session,
-    email: str,
+    identifier: str,
     password: str,
 ):
-    user = (
-        db.query(User)
-        .filter(func.lower(User.email) == email.strip().lower())
-        .first()
-    )
+    # Sign in with either the email address or the username.
+    identifier = identifier.strip()
+    column = func.lower(User.email) if "@" in identifier else func.lower(User.username)
+    user = db.query(User).filter(column == identifier.lower()).first()
 
     if not user:
         return None

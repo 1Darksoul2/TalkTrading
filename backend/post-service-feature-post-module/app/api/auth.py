@@ -4,9 +4,12 @@ from sqlalchemy.orm import Session
 
 from app.database.database import get_db
 from app.schemas.user import (
+    PasswordResetConfirm,
+    PasswordResetRequest,
     UserCreate,
     UserResponse,
 )
+from app.services import password_reset_service
 from app.services.auth_service import (
     register_user,
     authenticate_user,
@@ -34,14 +37,14 @@ def login(
 ):
     db_user = authenticate_user(
         db,
-        form_data.username,   # Enter email here
+        form_data.username,   # email or username
         form_data.password,
     )
 
     if not db_user:
         raise HTTPException(
             status_code=401,
-            detail="Invalid email or password",
+            detail="Incorrect email/username or password.",
         )
 
     access_token = create_access_token(
@@ -62,3 +65,15 @@ def login(
             "email": db_user.email,
         },
     }
+
+
+@router.post("/password-reset", status_code=202)
+def request_password_reset(body: PasswordResetRequest, db: Session = Depends(get_db)):
+    password_reset_service.request_reset(db, body.email)
+    return {"detail": "If an account exists for that email, a reset link is on its way."}
+
+
+@router.post("/password-reset/confirm")
+def confirm_password_reset(body: PasswordResetConfirm, db: Session = Depends(get_db)):
+    password_reset_service.confirm_reset(db, body.token, body.new_password)
+    return {"detail": "Your password has been changed. You can sign in now."}

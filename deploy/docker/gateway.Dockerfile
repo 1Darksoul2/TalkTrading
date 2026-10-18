@@ -15,7 +15,8 @@ ENV VITE_NEWS_SERVICE_URL=${PUBLIC_URL}/svc/news \
     VITE_E2EE_SERVICE_URL=${PUBLIC_URL}/svc/e2ee \
     VITE_POST_SERVICE_URL=${PUBLIC_URL}/svc/post \
     VITE_COMMUNITY_SERVICE_URL=${PUBLIC_URL}/svc/community \
-    VITE_EXPLORE_SERVICE_URL=${PUBLIC_URL}/svc/explore
+    VITE_EXPLORE_SERVICE_URL=${PUBLIC_URL}/svc/explore \
+    VITE_REEL_SERVICE_URL=${PUBLIC_URL}/svc/reel
 RUN npm run build
 
 # 2) Caddy with the rate-limit plugin (not in the standard image).

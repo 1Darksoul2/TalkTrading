@@ -111,12 +111,12 @@ def java_major_version(java_home: str) -> int:
         return 0
 
 def find_java_home() -> Optional[str]:
-    """The newest installed JDK 17+ (Spring Boot 3 needs 17+), preferring JAVA_HOME when it qualifies."""
+    """The newest installed JDK 23+ (both pom.xml files compile with <java.version>23), preferring JAVA_HOME when it qualifies."""
     candidates = [os.environ["JAVA_HOME"]] if os.environ.get("JAVA_HOME") else []
     for base in (r"C:\Program Files\Java", r"C:\Program Files\Microsoft", r"C:\Program Files\Eclipse Adoptium", "/usr/lib/jvm"):
         candidates += glob.glob(os.path.join(base, "*jdk*"))
     qualified = [(java_major_version(c), c) for c in candidates]
-    qualified = [(v, c) for v, c in qualified if v >= 17]
+    qualified = [(v, c) for v, c in qualified if v >= 23]
     if not qualified:
         return None
     env_home = os.environ.get("JAVA_HOME")
@@ -488,6 +488,21 @@ def main():
                 "DATABASE_URL": "sqlite:///./post.db"
             }
         ),
+        ServiceDef(
+            name="Reel Service",
+            tag="REEL",
+            port=8005,
+            cwd=os.path.join(ROOT_DIR, "backend", "Reels-main"),
+            command=[python_bin, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8005"],
+            health_url="http://127.0.0.1:8005/api/v1/health",
+            docs_url="http://127.0.0.1:8005/docs",
+            color=CYAN,
+            env_overrides={
+                "DATABASE_URL": "sqlite:///./reel.db",
+                # Verifies the tokens Post Service issues at login (same secret, HS256).
+                "JWT_SECRET_KEY": os.environ.get("SECRET_KEY", "super_secret_jwt_key_change_in_production"),
+            }
+        ),
     ]
 
     # Community and Explore are Java/Spring Boot services, started natively through Maven.
@@ -496,7 +511,7 @@ def main():
         services.extend(java_service_defs(mvn, java_home))
     else:
         print(f"{YELLOW}[NOTICE] Skipping Community and Explore: "
-              f"{'Maven' if not mvn else 'JDK 17+'} not found. Install it, or set "
+              f"{'Maven' if not mvn else 'JDK 23+'} not found. Install it, or set "
               f"{'MAVEN_HOME (or unpack Maven into .tools/)' if not mvn else 'JAVA_HOME'}.{RESET}")
 
     if not args.no_frontend:

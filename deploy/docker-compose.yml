@@ -31,7 +31,7 @@ services:
     volumes:
       - caddy_data:/data
       - caddy_config:/config
-    depends_on: [post, story, news, chart, e2e, community, explore]
+    depends_on: [post, story, news, chart, e2e, community, explore, reel]
 
   db:
     <<: *common
@@ -67,6 +67,13 @@ services:
       SECRET_KEY: ${JWT_SECRET}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${LOGIN_LIFETIME_MINUTES:-10080}
       CORS_ALLOWED_ORIGINS: ${PUBLIC_URL}
+      # Password reset links point here; mail goes out through SMTP_* when set (else the link is logged).
+      PUBLIC_URL: ${PUBLIC_URL}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-TalkTrading <no-reply@talktrading.app>}
     volumes:
       - post_uploads:/app/uploads
     depends_on:
@@ -108,6 +115,22 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/chart
       CORS_ORIGINS_RAW: ${PUBLIC_URL}
+    depends_on:
+      db: { condition: service_healthy }
+
+  reel:
+    <<: *common
+    build: ../backend/Reels-main
+    environment:
+      APP_ENV: production
+      DEBUG: "false"
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/reel
+      JWT_SECRET_KEY: ${JWT_SECRET}
+      SERVICE_API_KEY: ${REEL_SERVICE_API_KEY}
+      BACKEND_CORS_ORIGINS: '["${PUBLIC_URL}"]'
+      MEDIA_DIR: /data/media
+    volumes:
+      - reel_media:/data/media
     depends_on:
       db: { condition: service_healthy }
 
@@ -172,3 +195,4 @@ volumes:
   post_uploads:
   story_media:
   community_uploads:
+  reel_media:

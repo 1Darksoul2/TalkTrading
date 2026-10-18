@@ -53,6 +53,16 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
+    # Password reset: the emailed link points at the web app's /reset-password page.
+    PUBLIC_URL: str = "http://localhost:5173"
+    PASSWORD_RESET_EXPIRE_MINUTES: int = 30
+    # Outgoing mail for reset links. Without SMTP_HOST the link is written to the service log.
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: int = 587
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_FROM: str = "TalkTrading <no-reply@talktrading.app>"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
