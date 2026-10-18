@@ -1,0 +1,20 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+sqlalchemy==2.0.35
+psycopg2-binary==2.9.9
+pydantic==2.9.2
+pydantic-settings==2.5.2
+python-jose[cryptography]==3.3.0   # JWT verification
+slowapi==0.1.9                     # Rate limiting
+boto3==1.35.32                     # S3 presigned URLs
+pika==1.3.2                        # RabbitMQ (used when BROKER_TYPE=rabbitmq)
+kafka-python==2.0.2                # Kafka (used when BROKER_TYPE=kafka)
+requests==2.32.3
+httpx==0.27.2                        # reads the Post Service's public API
+python-multipart==0.0.20           # file uploads
+Pillow==11.3.0                     # image validation and re-encoding
+filetype==1.2.0                    # detect real file type from bytes
+mutagen==1.47.0                    # MP4/MOV duration
+# Testing
+pytest==8.3.3
+pytest-asyncio==0.24.0

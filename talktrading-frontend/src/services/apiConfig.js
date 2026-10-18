@@ -1,0 +1,7 @@
+export const NEWS_SERVICE_URL = import.meta.env.VITE_NEWS_SERVICE_URL || 'http://127.0.0.1:8000'
+export const STORY_SERVICE_URL = import.meta.env.VITE_STORY_SERVICE_URL || 'http://127.0.0.1:8001'
+export const CHART_SERVICE_URL = import.meta.env.VITE_CHART_SERVICE_URL || 'http://127.0.0.1:8002'
+export const E2EE_SERVICE_URL = import.meta.env.VITE_E2EE_SERVICE_URL || 'http://127.0.0.1:8003'
+export const POST_SERVICE_URL = import.meta.env.VITE_POST_SERVICE_URL || 'http://127.0.0.1:8004'
+export const COMMUNITY_SERVICE_URL = import.meta.env.VITE_COMMUNITY_SERVICE_URL || 'http://127.0.0.1:8080'
+export const EXPLORE_SERVICE_URL = import.meta.env.VITE_EXPLORE_SERVICE_URL || 'http://127.0.0.1:8083'

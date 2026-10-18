@@ -1,0 +1,41 @@
+# ── Secrets: never commit ────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+deploy/.env
+deploy/backups/
+*.pem
+*.key
+
+# ── Local data ───────────────────────────────────────────────────────
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+uploads/
+media/
+*.log
+
+# ── Dependencies, builds, caches ─────────────────────────────────────
+venv/
+.venv/
+node_modules/
+dist/
+target/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.tools/
+.claude/
+
+# ── Large archives (GitHub rejects files over 100 MB) ────────────────
+*.zip
+
+# ── OS / editor ──────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Reviewed copy of the Explore service with its own git history (see NEW_SERVICES_REVIEW.md)
+explore/

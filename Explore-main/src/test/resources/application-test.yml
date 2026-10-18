@@ -1,0 +1,56 @@
+server:
+  port: 0
+
+spring:
+  application:
+    name: explore-service-test
+  datasource:
+    url: jdbc:h2:mem:explore_test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+app:
+  security:
+    dev-mode: true
+  clients:
+    post-service:
+      url: http://localhost:8000
+      connect-timeout-ms: 1000
+      read-timeout-ms: 1000
+  cache:
+    ttl:
+      trending-minutes: 1
+      popular-minutes: 1
+      recent-minutes: 1
+      user-minutes: 1
+      hashtag-minutes: 1
+    jitter-seconds: 0
+  ranking:
+    weights:
+      engagement: 0.30
+      recency: 0.25
+      likes: 0.20
+      comments: 0.15
+      views: 0.10
+    baseline:
+      likes: 500
+      comments: 100
+      views: 5000
+      recency-half-life-hours: 24.0
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

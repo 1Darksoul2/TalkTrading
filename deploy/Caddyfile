@@ -1,0 +1,115 @@
+# TalkTrading gateway: one public address for the web app and every API.
+#
+#   /                    the React app (static files)
+#   /svc/<service>/...   the service, with the /svc/<service> prefix removed
+#
+# Caddy gets and renews the HTTPS certificate by itself when SITE_ADDRESS is a real domain.
+
+{
+	email {$ACME_EMAIL}
+	order rate_limit before basic_auth
+}
+
+{$SITE_ADDRESS} {
+	encode zstd gzip
+	request_body {
+		max_size 60MB
+	}
+
+	# Identity is never taken from the browser. Community and Explore trust these headers, so they
+	# are removed here and X-User-Id is set again only from a verified login token (see below).
+	request_header -X-User-Id
+	request_header -X-User-Roles
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Content-Security-Policy "default-src 'self'; script-src 'self' https://s3.tradingview.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self'; frame-src https://www.tradingview-widget.com https://*.tradingview.com https://s.tradingview.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		-Server
+	}
+
+	# Login tokens appear in the chat WebSocket URL; keep them out of the logs.
+	log {
+		output stdout
+		format filter {
+			wrap json
+			request>uri query {
+				delete token
+			}
+			request>headers>Authorization delete
+		}
+	}
+
+	rate_limit {
+		zone login {
+			match {
+				method POST
+				path /svc/post/auth/*
+			}
+			key {remote_host}
+			events 10
+			window 1m
+		}
+		zone api {
+			match {
+				path /svc/*
+			}
+			key {remote_host}
+			events 900
+			window 1m
+		}
+	}
+
+	# Internal endpoints are never reachable from outside.
+	@internal path /svc/story/internal/*
+	respond @internal 404
+
+	handle_path /svc/news/* {
+		reverse_proxy news:8000
+	}
+	handle_path /svc/story/* {
+		reverse_proxy story:8001
+	}
+	handle_path /svc/chart/* {
+		reverse_proxy chart:8002
+	}
+	handle_path /svc/e2ee/* {
+		reverse_proxy e2e:8003
+	}
+	handle_path /svc/post/* {
+		reverse_proxy post:8004
+	}
+	handle_path /svc/community/* {
+		forward_auth story:8001 {
+			uri /internal/gateway-auth
+			copy_headers X-User-Id
+		}
+		reverse_proxy community:8080
+	}
+	handle_path /svc/explore/* {
+		forward_auth story:8001 {
+			uri /internal/gateway-auth
+			copy_headers X-User-Id
+		}
+		reverse_proxy explore:8083
+	}
+
+	# Unknown API paths answer 404 instead of the app's index page.
+	handle /svc/* {
+		respond "Not found" 404
+	}
+
+	# The web app. Hashed build files are cached for a year; index.html never.
+	handle {
+		root * /srv/app
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		@pages not path /assets/*
+		header @pages Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}

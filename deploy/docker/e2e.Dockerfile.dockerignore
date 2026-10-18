@@ -1,0 +1,10 @@
+# Used instead of a .dockerignore inside E2E-main (that folder is not modified)
+.env
+*.db
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+tests/
+*.log

@@ -1,0 +1,1 @@
+from app.models.save import Save as Bookmark  # Alias for backward compatibility

@@ -1,0 +1,36 @@
+# Target / Build artifacts
+target/
+build/
+*.jar
+*.war
+*.ear
+
+# Frontend dependencies and output
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+node_modules/
+dist/
+
+# Local Environment & Secrets
+.env
+.env.local
+*.log
+
+# Uploaded Files
+uploads/
+/uploads
+
+# IDE & OS Specific
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+
+# Maven Wrapper binaries if generated locally
+.mvn/timing.properties
+
+# Frontend - not part of backend microservice
+frontend/

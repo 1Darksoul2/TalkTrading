@@ -1,0 +1,1 @@
+from app.services.save_service import save_post as add_bookmark, unsave_post as remove_bookmark, get_user_saved_posts as my_bookmarks

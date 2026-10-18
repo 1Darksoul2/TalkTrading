@@ -1,0 +1,3 @@
+# Secrets and backups never go into version control
+.env
+backups/

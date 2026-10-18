@@ -1,0 +1,60 @@
+services:
+  post-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: post_service_app
+    ports:
+      - "${HOST_PORT:-8004}:8000"
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - PORT=8000
+      - DATABASE_URL=postgresql://post_user:post_password_secret@postgres:5432/post_service_db
+      - POSTGRES_USER=post_user
+      - POSTGRES_PASSWORD=post_password_secret
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=post_service_db
+      - SECRET_KEY=super_secret_jwt_key_change_in_production
+      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:8000,http://localhost:8000,http://localhost:5173,http://127.0.0.1:5173
+      - USER_SERVICE_URL=http://user-service:8000
+      - STORAGE_TYPE=local
+      - LOCAL_STORAGE_DIR=/app/uploads
+    volumes:
+      - media_data:/app/uploads
+    networks:
+      - post-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: post_service_postgres
+    environment:
+      - POSTGRES_USER=post_user
+      - POSTGRES_PASSWORD=post_password_secret
+      - POSTGRES_DB=post_service_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - post-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U post_user -d post_service_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  media_data:
+    driver: local
+
+networks:
+  post-network:
+    name: post-network
+    driver: bridge

@@ -1,0 +1,146 @@
+server:
+  port: ${SERVER_PORT:8083}
+  shutdown: graceful
+
+spring:
+  application:
+    name: explore-service
+  lifecycle:
+    timeout-per-shutdown-phase: 15s
+
+  # PostgreSQL Datasource
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:explore_db}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 20000
+      maximum-pool-size: 15
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1200000
+
+  # JPA & Hibernate
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        jdbc:
+          batch_size: 50
+    show-sql: false
+
+  # Flyway Migrations
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+  # Redis Configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 2
+          max-wait: 2000ms
+
+# Explore Application Settings
+app:
+  security:
+    # In production, dev-mode is false (only X-User-Id header is accepted). Dev-mode can be enabled via DEV_MODE=true
+    dev-mode: ${DEV_MODE:false}
+  clients:
+    post-service:
+      url: ${POST_SERVICE_URL:http://localhost:8000}
+      connect-timeout-ms: 3000
+      read-timeout-ms: 5000
+  cache:
+    ttl:
+      trending-minutes: 5
+      popular-minutes: 15
+      recent-minutes: 2
+      user-minutes: 5
+      hashtag-minutes: 10
+    jitter-seconds: 30
+  ranking:
+    weights:
+      engagement: 0.30
+      recency: 0.25
+      likes: 0.20
+      comments: 0.15
+      views: 0.10
+    baseline:
+      likes: 500
+      comments: 100
+      views: 5000
+      recency-half-life-hours: 24.0
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      postService:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10000ms
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          - org.springframework.web.client.ResourceAccessException
+          - org.springframework.web.client.HttpServerErrorException
+  retry:
+    instances:
+      postService:
+        max-attempts: 3
+        wait-duration: 500ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - java.io.IOException
+          - org.springframework.web.client.ResourceAccessException
+
+# Actuator & Observability
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+# OpenAPI / Swagger
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+
+# Structured Logging
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [corr_id=%X{correlationId:-NONE}] %logger{36} - %msg%n"
+  level:
+    root: INFO
+    com.talktrading.explore: DEBUG
+    io.github.resilience4j: INFO
