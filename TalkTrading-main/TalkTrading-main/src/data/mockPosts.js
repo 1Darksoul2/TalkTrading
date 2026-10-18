@@ -1,0 +1,68 @@
+const mockPosts = [
+  {
+    id: 1, userId: 1, username: 'elena_trade', displayName: 'Elena Rostova',
+    userAvatar: 'https://picsum.photos/seed/elena/200/200', isVerified: true,
+    content: 'Breaking through the resistance level! The tech sector is showing strong momentum today despite the macro headwinds. Keep an eye on the volume here. 🚀📈 #TechStocks #DayTrading',
+    image: 'https://picsum.photos/seed/chart1/800/600',
+    ticker: 'AAPL', tickerChange: '+2.4%', likes: 1243, comments: 84, shares: 32,
+    timestamp: '2h ago', isLiked: false, isBookmarked: false,
+  },
+  {
+    id: 2, userId: 4, username: 'macro_bull', displayName: 'Marcus Chen',
+    userAvatar: 'https://picsum.photos/seed/marcus/200/200', isVerified: true,
+    content: 'Fed minutes reveal hawkish undertone. Bond yields spiking. This changes the playbook for Q4. Rotating into defensive sectors. Full analysis thread below. 🧵',
+    image: 'https://picsum.photos/seed/chart2/800/600',
+    ticker: 'SPY', tickerChange: '-0.85%', likes: 2891, comments: 156, shares: 89,
+    timestamp: '3h ago', isLiked: true, isBookmarked: true,
+  },
+  {
+    id: 3, userId: 5, username: 'crypto_wolf', displayName: 'James Davies',
+    userAvatar: 'https://picsum.photos/seed/james/200/200', isVerified: false,
+    content: 'BTC weekly close above 64k is massive. The supply shock from the halving is starting to play out. Accumulation zone confirmed on-chain. NFA but this looks like early 2021 all over again. 🔥',
+    image: 'https://picsum.photos/seed/chart3/800/600',
+    ticker: 'BTC', tickerChange: '+5.4%', likes: 3420, comments: 234, shares: 178,
+    timestamp: '4h ago', isLiked: false, isBookmarked: false,
+  },
+  {
+    id: 4, userId: 2, username: 'alex_quant', displayName: 'Alex Mercer',
+    userAvatar: 'https://picsum.photos/seed/alexq/200/200', isVerified: true,
+    content: 'Volume profile suggests heavy accumulation in this zone. Watch for a bounce off the 200 SMA. Setting alerts at $242 and $248. Risk/reward here is excellent.',
+    image: 'https://picsum.photos/seed/chart4/800/600',
+    ticker: 'TSLA', tickerChange: '+2.45%', likes: 1876, comments: 92, shares: 45,
+    timestamp: '5h ago', isLiked: false, isBookmarked: true,
+  },
+  {
+    id: 5, userId: 6, username: 'mike_trades', displayName: 'Mike Rodriguez',
+    userAvatar: 'https://picsum.photos/seed/mike/200/200', isVerified: true,
+    content: 'ES futures looking strong into the close. 4500 level is the key. If we hold above, looking at 4550 target by end of week. Managing risk tight here. 📊',
+    image: 'https://picsum.photos/seed/chart5/800/600',
+    ticker: 'ES', tickerChange: '+0.92%', likes: 945, comments: 67, shares: 23,
+    timestamp: '6h ago', isLiked: true, isBookmarked: false,
+  },
+  {
+    id: 6, userId: 3, username: 'sarah_options', displayName: 'Sarah Jensen',
+    userAvatar: 'https://picsum.photos/seed/sarah/200/200', isVerified: false,
+    content: 'Massive call buying on NVDA Jan 2025 $150 strikes. Over $12M in premium. Someone knows something. Following this flow closely. Options activity like this doesn\'t lie.',
+    image: 'https://picsum.photos/seed/chart6/800/600',
+    ticker: 'NVDA', tickerChange: '+4.20%', likes: 2134, comments: 143, shares: 98,
+    timestamp: '8h ago', isLiked: false, isBookmarked: false,
+  },
+  {
+    id: 7, userId: 7, username: 'nina_fx', displayName: 'Nina Patel',
+    userAvatar: 'https://picsum.photos/seed/nina/200/200', isVerified: false,
+    content: 'EUR/USD breaking the descending wedge pattern. London session opened with strong momentum. Target 1.0950. Stop at 1.0820. Clean setup.',
+    image: 'https://picsum.photos/seed/chart7/800/600',
+    ticker: 'EUR/USD', tickerChange: '+0.34%', likes: 678, comments: 45, shares: 12,
+    timestamp: '10h ago', isLiked: false, isBookmarked: false,
+  },
+  {
+    id: 8, userId: 8, username: 'david_swing', displayName: 'David Kim',
+    userAvatar: 'https://picsum.photos/seed/david/200/200', isVerified: false,
+    content: 'Just closed the AMZN swing trade for +18%. The weekly volume profile was signaling accumulation all month. Patience pays. Details and next setup coming in the thread.',
+    image: 'https://picsum.photos/seed/chart8/800/600',
+    ticker: 'AMZN', tickerChange: '+1.12%', likes: 1567, comments: 89, shares: 56,
+    timestamp: '12h ago', isLiked: false, isBookmarked: false,
+  },
+]
+
+export default mockPosts

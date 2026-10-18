@@ -1,0 +1,63 @@
+import { useState, useRef, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
+
+export default function ProfileMenu() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const [open, setOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return
+    const handleClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open])
+
+  const handleLogout = () => {
+    setOpen(false)
+    logout()
+    navigate('/login', { replace: true })
+  }
+
+  return (
+    <div className="relative ml-1" ref={menuRef}>
+      <button
+        onClick={() => setOpen(prev => !prev)}
+        className="block w-8 h-8 rounded-full overflow-hidden bg-surface-container-high"
+        aria-label="Account menu"
+        aria-expanded={open}
+      >
+        <img src="https://picsum.photos/seed/alexq/200/200" alt="" className="w-full h-full object-cover" />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-2 w-56 rounded-xl bg-surface-card border border-outline-variant shadow-lg overflow-hidden z-50">
+          <div className="px-4 py-3 border-b border-outline-variant">
+            <div className="text-sm font-semibold text-on-surface truncate">{user?.displayName}</div>
+            <div className="text-xs text-on-surface-muted truncate">@{user?.username}</div>
+          </div>
+          <Link
+            to="/profile"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-on-surface-muted hover:text-on-surface hover:bg-on-surface/5 transition-colors"
+          >
+            <span className="material-symbols-outlined text-[18px]">person</span>
+            Profile
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-bearish hover:bg-bearish/10 transition-colors"
+          >
+            <span className="material-symbols-outlined text-[18px]">logout</span>
+            Log out
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
