@@ -1,0 +1,8 @@
+# Scripts and container files run on Linux: always keep Unix line endings
+*.sh         text eol=lf
+*.Dockerfile text eol=lf
+Dockerfile   text eol=lf
+Caddyfile    text eol=lf
+*.yml        text eol=lf
+*.yaml       text eol=lf
+mvnw         text eol=lf
