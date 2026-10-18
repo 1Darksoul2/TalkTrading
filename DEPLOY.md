@@ -52,6 +52,14 @@ docker compose up -d --build
 
 The first build takes 10-15 minutes. Then open `https://your-domain.com` and create the first account.
 
+Give testers somewhere to start (a team account, a welcome post and five starter communities; safe to run again):
+
+```bash
+python3 scripts/seed_beta.py --url https://your-domain.com --email team@your-domain.com
+```
+
+`make_env.py` also sets `SUPPORT_EMAIL` to your email: the app shows it on the feedback, terms and privacy pages. Change it in `.env` and run `docker compose up -d --build` if testers should write somewhere else.
+
 `make_env.py` writes `deploy/.env` with strong random secrets. **Keep a copy of that file somewhere safe**: without it the database and logins cannot be recovered.
 
 ## 6. Backups (once)
@@ -69,6 +77,16 @@ Every night at 03:30 all databases and uploaded media are saved to `deploy/backu
 Create a free monitor at **uptimerobot.com** for `https://your-domain.com/svc/story/health`. It emails you if the site stops answering.
 
 ---
+
+## Restoring a backup
+
+```bash
+sh scripts/restore.sh backups/20261019-0330     # asks you to type RESTORE; replaces all current data
+```
+
+## Moderation
+
+There is no admin screen yet; `sh scripts/moderate.sh` lists reports and recent content, hides or restores posts and reels, ends stories, looks up accounts and shows beta numbers. See [BETA_TESTING.md](BETA_TESTING.md) for the daily routine.
 
 ## Everyday commands (in `/opt/talktrading/deploy`)
 

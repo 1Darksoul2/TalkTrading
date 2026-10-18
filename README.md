@@ -1,6 +1,6 @@
 # TalkTrading System
 
-Full-stack microservices trading and social platform featuring News, Stories, Trading Charts, End-to-End Encrypted (E2EE) Chat, Social Posts, and Communities, with a React 18 + Vite frontend.
+A social network for traders: posts, stories, reels, end-to-end encrypted chat, communities, explore, live market charts and news. Eight backend services and a React 19 + Vite web app.
 
 ## 🧰 One-time setup
 
@@ -74,4 +74,11 @@ The web app lives in `TalkTrading-main/TalkTrading-main/`. Every page talks to t
 - `start.bat --check-only`: Verifies that Python virtualenv, Node/npm, and all ports are available.
 - `start.bat --kill-existing`: Automatically terminates any processes occupying ports 8000-8005, 8080, 8083, 5173 before launching.
 
-For full system documentation and architecture specifications, see [PROJECT_DOCUMENTATION.md](file:///PROJECT_DOCUMENTATION.md).
+## 📚 Documentation
+
+| Document | For |
+|---|---|
+| [TALKTRADING_COMPLETE_DOCUMENTATION.md](TALKTRADING_COMPLETE_DOCUMENTATION.md) | Everything: architecture, services, security, testing, operations, limits, roadmap, API reference |
+| [DEPLOY.md](DEPLOY.md) | Putting it on a server |
+| [BETA_TESTING.md](BETA_TESTING.md) | Running the closed beta, and the page for testers |
+| [tests/e2e/README.md](tests/e2e/README.md) | Browser tests that drive the app as real users |
