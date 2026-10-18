@@ -1,4 +1,4 @@
-# Used instead of a .dockerignore inside E2E-main (that folder is not modified)
+# Used instead of a .dockerignore inside backend/E2E-main (that folder is not modified)
 .env
 *.db
 venv/

@@ -1,4 +1,4 @@
-# Copy of E2E-main/Dockerfile, kept here so its folder stays untouched; paired with e2e.Dockerfile.dockerignore.
+# Copy of backend/E2E-main/Dockerfile, kept here so its folder stays untouched; paired with e2e.Dockerfile.dockerignore.
 FROM python:3.11-slim as base
 
 # Set environment variables

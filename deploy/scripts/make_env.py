@@ -13,7 +13,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ENV_PATH = os.path.join(HERE, "..", ".env")
-NEWS_ENV = os.path.join(HERE, "..", "..", "news-service", ".env")
+NEWS_ENV = os.path.join(HERE, "..", "..", "backend", "news-service", ".env")
 
 
 def existing_news_key():
@@ -32,7 +32,7 @@ def main():
     p.add_argument("--domain", help="the domain users will open, e.g. talktrading.example.com")
     p.add_argument("--email", help="your email, for the free HTTPS certificate (Let's Encrypt)")
     p.add_argument("--local", action="store_true", help="trial run on this computer, plain http on port 8088")
-    p.add_argument("--news-key", default=None, help="News API key (default: reuse news-service/.env)")
+    p.add_argument("--news-key", default=None, help="News API key (default: reuse backend/news-service/.env)")
     args = p.parse_args()
 
     if os.path.exists(ENV_PATH):

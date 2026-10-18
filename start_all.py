@@ -158,7 +158,7 @@ def java_service_defs(mvn: str, java_home: str) -> List["ServiceDef"]:
             name="Community Service",
             tag="COMMUNITY",
             port=8080,
-            cwd=os.path.join(ROOT_DIR, "community-main"),
+            cwd=os.path.join(ROOT_DIR, "backend", "community-main"),
             command=[mvn, "-q", "spring-boot:run", "-Dspring-boot.run.profiles=dev", jvm_args],
             health_url="http://127.0.0.1:8080/api/v1/health",
             docs_url="http://127.0.0.1:8080/swagger-ui.html",
@@ -169,7 +169,7 @@ def java_service_defs(mvn: str, java_home: str) -> List["ServiceDef"]:
             name="Explore Service",
             tag="EXPLORE",
             port=8083,
-            cwd=os.path.join(ROOT_DIR, "Explore-main"),
+            cwd=os.path.join(ROOT_DIR, "backend", "Explore-main"),
             # H2 lives on Explore's test classpath, hence useTestClasspath. No Redis needed: it fails open.
             command=[mvn, "-q", "spring-boot:run", "-Dspring-boot.run.useTestClasspath=true", jvm_args,
                      f"-Dspring-boot.run.arguments={explore_args}"],
@@ -417,7 +417,7 @@ def main():
             name="News Service",
             tag="NEWS",
             port=8000,
-            cwd=os.path.join(ROOT_DIR, "news-service"),
+            cwd=os.path.join(ROOT_DIR, "backend", "news-service"),
             command=[python_bin, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8000"],
             health_url="http://127.0.0.1:8000/health",
             docs_url="http://127.0.0.1:8000/docs",
@@ -432,7 +432,7 @@ def main():
             name="Story Service",
             tag="STORY",
             port=8001,
-            cwd=os.path.join(ROOT_DIR, "story-service"),
+            cwd=os.path.join(ROOT_DIR, "backend", "story-service"),
             command=[python_bin, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8001"],
             health_url="http://127.0.0.1:8001/health",
             docs_url="http://127.0.0.1:8001/docs",
@@ -450,7 +450,7 @@ def main():
             name="Chart Service",
             tag="CHART",
             port=8002,
-            cwd=os.path.join(ROOT_DIR, "chart-service"),
+            cwd=os.path.join(ROOT_DIR, "backend", "chart-service"),
             command=[python_bin, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8002"],
             health_url="http://127.0.0.1:8002/health",
             docs_url="http://127.0.0.1:8002/docs",
@@ -461,7 +461,7 @@ def main():
             name="E2EE Identity Svc",
             tag="E2EE",
             port=8003,
-            cwd=os.path.join(ROOT_DIR, "E2E-main"),
+            cwd=os.path.join(ROOT_DIR, "backend", "E2E-main"),
             command=[python_bin, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8003"],
             health_url="http://127.0.0.1:8003/health",
             docs_url="http://127.0.0.1:8003/docs",
@@ -476,7 +476,7 @@ def main():
             name="Post Service",
             tag="POST",
             port=8004,
-            cwd=os.path.join(ROOT_DIR, "post-service-feature-post-module"),
+            cwd=os.path.join(ROOT_DIR, "backend", "post-service-feature-post-module"),
             command=[python_bin, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8004"],
             health_url="http://127.0.0.1:8004/health",
             docs_url="http://127.0.0.1:8004/docs",
@@ -500,7 +500,7 @@ def main():
               f"{'MAVEN_HOME (or unpack Maven into .tools/)' if not mvn else 'JAVA_HOME'}.{RESET}")
 
     if not args.no_frontend:
-        frontend_dir = os.path.join(ROOT_DIR, "talktrading-frontend")
+        frontend_dir = os.path.join(ROOT_DIR, "frontend")
         vite_script = os.path.join(frontend_dir, "node_modules", "vite", "bin", "vite.js")
         
         if npm_bin:
