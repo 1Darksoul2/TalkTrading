@@ -144,7 +144,9 @@ services:
       context: ../backend/E2E-main
       dockerfile: ../../deploy/docker/e2e.Dockerfile
     # Rate limits are per client IP: read it from the gateway's X-Forwarded-For, or every user would share one limit.
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8003", "--proxy-headers", "--forwarded-allow-ips", "*"]
+    # No access log here: the chat WebSocket carries the login token in its URL, and uvicorn would log it in full.
+    # The gateway keeps an access log with the token removed.
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8003", "--proxy-headers", "--forwarded-allow-ips", "*", "--no-access-log"]
     environment:
       DEBUG: "false"
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/e2e

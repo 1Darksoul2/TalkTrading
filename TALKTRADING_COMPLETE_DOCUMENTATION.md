@@ -165,7 +165,7 @@ Notes per service:
 **Gateway protections.**
 - 10 sign-in/sign-up attempts per minute per address, 900 API calls per minute per address overall.
 - Security headers: HSTS, no framing, strict Content-Security-Policy, `nosniff`, no `Server` header.
-- Login tokens never appear in logs; the chat WebSocket's token is stripped from access logs.
+- Login tokens never appear in logs: the gateway strips the chat WebSocket's token from its access log, and the chat service runs without its own access log for that reason.
 - The gateway overwrites `X-Forwarded-For` with the real client address. The Story, Reel and E2EE services read it (`--proxy-headers`) so their per-address rate limits apply to each user, not to everyone together.
 
 **End-to-end encrypted chat.**
@@ -353,6 +353,7 @@ The chat service's two WebSocket tests hang inside the test client (the WebSocke
 
 **19 October 2026 — beta readiness** (core service code untouched in this round)
 - Web app: Terms, Privacy and Guidelines pages; feedback page; service status page; 404 page; reel report and delete; Market and Create reachable on phones (the floating Market button covered content); scrollable tab bars; pages load on demand (first download 747 → 443 KB); web app manifest and icon.
+- Security: the chat service no longer writes access logs (its WebSocket URL carries the login token, which uvicorn logged in full); the gateway's log keeps the URL with the token removed. Sign-in pages explain the gateway's rate limit ("Too many attempts from this network") instead of a generic failure.
 - Deployment: gateway build sends only the web app and Caddyfile (a local `node_modules` from another OS used to break the image, and the whole repo including `deploy/.env` was sent to Docker); Reel and E2EE services read the real client address so rate limits are per user; `SUPPORT_EMAIL` setting.
 - Operations: backups include reel videos; `restore.sh`; `moderate.sh`; `seed_beta.py`; `BETA_TESTING.md`.
 - Quality: CI workflow; browser test suite in `tests/e2e`.

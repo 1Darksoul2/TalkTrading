@@ -41,16 +41,20 @@ const makeUser = name => ({
 // Known, harmless answers that are not app faults:
 // - the chat service refuses a repeat key upload when pages are reloaded quickly (the keys are already there);
 // - the gateway allows 10 sign-in/sign-up calls a minute per address, and the tests make many in a row.
+// - when that limit cut a sign-up short, signing up again answers "already exists" (409) and signup() signs in instead.
 const KNOWN = r =>
   (r.status() === 429 && r.url().endsWith('/e2ee/devices')) ||
-  (r.status() === 429 && r.url().includes('/auth/'))
+  (r.status() === 429 && r.url().includes('/auth/')) ||
+  (r.status() === 409 && r.url().endsWith('/auth/register'))
 
 /** Collects console errors, crashes and failed API calls; `expected` filters intended failures of a test. */
 function watch(page, who, problems, expected = () => false) {
   page.on('console', m => {
     const text = m.text()
-    // "Failed to fetch" here is a request the test itself cut off by loading the next page.
-    if (m.type() === 'error' && !text.includes('Failed to load resource') && !text.includes('Failed to fetch') && !ignored(text)) {
+    // Requests and the chat WebSocket that the test itself cut off by loading the next page.
+    // (A chat that really fails to connect fails the chat step in flows.js.)
+    const cutOff = text.includes('Failed to fetch') || /^WebSocket connection to .* failed/.test(text) || text.startsWith('[E2E WS] Error')
+    if (m.type() === 'error' && !text.includes('Failed to load resource') && !cutOff && !ignored(text)) {
       problems.push(`[${who}] console: ${text.slice(0, 300)}`)
     }
   })
@@ -78,16 +82,37 @@ function runner() {
   }
 }
 
+// The gateway allows 10 sign-in/sign-up calls a minute per address; running the suites back to back
+// can reach that, so sign-up waits out the limit (the app says "Too many attempts") and tries again.
 async function signup(page, u) {
-  await page.goto(`${BASE}/signup`)
-  await page.fill('#tt-fullname', u.full)
-  await page.fill('#tt-username', u.username)
-  await page.fill('#tt-email', u.email)
-  await page.fill('#tt-new-password', u.password)
-  await page.fill('#tt-confirm', u.password)
-  await page.check('input[type=checkbox]')
-  await page.click('button[type=submit]')
-  await page.waitForURL(`${BASE}/`, { timeout: 15000 })
+  for (let attempt = 1; ; attempt++) {
+    await page.goto(`${BASE}/signup`)
+    await page.fill('#tt-fullname', u.full)
+    await page.fill('#tt-username', u.username)
+    await page.fill('#tt-email', u.email)
+    await page.fill('#tt-new-password', u.password)
+    await page.fill('#tt-confirm', u.password)
+    await page.check('input[type=checkbox]')
+    await page.click('button[type=submit]')
+    const outcome = await Promise.race([
+      page.waitForURL(`${BASE}/`, { timeout: 15000 }).then(() => 'in'),
+      page.getByText(/Too many attempts/).waitFor({ timeout: 15000 }).then(() => 'limited'),
+      page.getByText(/already exists|already taken/).waitFor({ timeout: 15000 }).then(() => 'exists'),
+    ])
+    if (outcome === 'in') return
+    if (outcome === 'exists') {
+      // The account was created but the sign-in right after it was rate limited: sign in instead.
+      await page.waitForTimeout(30000)
+      await page.goto(`${BASE}/login`)
+      await page.fill('#tt-identifier', u.email)
+      await page.fill('#tt-password', u.password)
+      await page.click('button[type=submit]')
+      await page.waitForURL(`${BASE}/`, { timeout: 15000 })
+      return
+    }
+    if (attempt === 4) throw new Error('still rate limited after several minutes')
+    await page.waitForTimeout(30000)
+  }
 }
 
 module.exports = { BASE, OUT, launch, writePng, makeUser, watch, runner, signup }

@@ -32,6 +32,8 @@ async function post(path, options, fallbackMessage) {
     // (the generic login fallback below would otherwise read "Invalid email or
     // password" for a crashed backend).
     if (response.status >= 500) throw new Error(SERVER_ERROR_MESSAGE)
+    // The gateway allows a few sign-in attempts a minute per network.
+    if (response.status === 429) throw new Error('Too many attempts from this network. Please wait a minute and try again.')
     const err = await response.json().catch(() => ({}))
     throw new Error(messageFromDetail(err.detail, fallbackMessage))
   }

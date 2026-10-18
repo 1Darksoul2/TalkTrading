@@ -16,9 +16,9 @@ async function main() {
 
   await step('Sign up on a phone', () => signup(page, makeUser('Mo')))
   await step('Market and Create are reachable from the top bar', async () => {
-    await page.locator('a[aria-label="Create"]').click()
+    await page.locator('a[aria-label="Create"]:visible').click()
     await page.waitForURL(`${BASE}/create`)
-    await page.locator('a[aria-label="Market"]').click()
+    await page.locator('a[aria-label="Market"]:visible').click()
     await page.waitForURL(`${BASE}/market`)
   })
 
