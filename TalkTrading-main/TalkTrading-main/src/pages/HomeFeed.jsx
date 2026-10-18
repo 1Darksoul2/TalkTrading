@@ -121,6 +121,11 @@ export default function HomeFeed() {
       <aside className="hidden md:flex md:col-span-4 lg:col-span-3 flex-col gap-4">
         <SuggestedPeople />
         <TrendingTickers />
+        <p className="px-1 text-[11px] leading-relaxed text-on-surface-muted">
+          Posts are opinions, not financial advice.{' '}
+          <Link to="/terms" className="hover:underline">Terms</Link> · <Link to="/privacy" className="hover:underline">Privacy</Link> ·{' '}
+          <Link to="/guidelines" className="hover:underline">Guidelines</Link> · <Link to="/feedback" className="hover:underline">Feedback</Link>
+        </p>
       </aside>
 
       {commentsFor && createPortal(

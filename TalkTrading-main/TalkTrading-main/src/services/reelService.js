@@ -56,6 +56,7 @@ export const reelService = {
   comments: (id, skip = 0, limit = 50) => request(`/reels/${id}/comments`, { params: { skip, limit } }),
   addComment: (id, content, parentId) => request(`/reels/${id}/comments`, { method: 'POST', body: { content, parent_id: parentId } }),
   deleteComment: commentId => request(`/reels/comments/${commentId}`, { method: 'DELETE' }),
+  report: (id, reason, description) => request(`/moderation/reels/${id}/report`, { method: 'POST', body: { reason, description: description || null } }),
 
   /** Upload the video (and a poster frame). Returns { video_url, thumbnail_url, mime_type, file_size_bytes }. */
   async upload(video, poster) {
@@ -81,5 +82,10 @@ export const reelService = {
     return data.data
   },
 }
+
+export const REEL_REPORT_REASONS = [
+  ['spam', 'Spam or scam'], ['misinformation', 'False information or manipulation'], ['harassment', 'Harassment or bullying'],
+  ['hate_speech', 'Hate speech'], ['violence', 'Violence'], ['nudity', 'Nudity'], ['copyright', 'Copyright'], ['other', 'Something else'],
+]
 
 export default reelService

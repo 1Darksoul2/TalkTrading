@@ -119,8 +119,12 @@ export default function Signup() {
               style={{ accentColor: authColors.gold }}
             />
             <span className="text-xs leading-relaxed" style={{ color: authColors.muted }}>
-              I agree to the Terms and Community Guidelines, and understand that posts on Talk Trading are
-              opinions, not investment advice.
+              I am 18 or older and agree to the{' '}
+              <a href="/terms" target="_blank" rel="noreferrer" className="underline" style={{ color: authColors.gold }}>Terms</a> and{' '}
+              <a href="/guidelines" target="_blank" rel="noreferrer" className="underline" style={{ color: authColors.gold }}>Community Guidelines</a>,
+              have read the{' '}
+              <a href="/privacy" target="_blank" rel="noreferrer" className="underline" style={{ color: authColors.gold }}>Privacy Notice</a>,
+              and understand that posts on Talk Trading are opinions, not investment advice.
             </span>
           </label>
           {errors.agreed && <span className="text-xs" style={{ color: authColors.error }}>{errors.agreed}</span>}

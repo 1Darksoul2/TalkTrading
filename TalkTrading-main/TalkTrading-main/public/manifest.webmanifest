@@ -1,0 +1,10 @@
+{
+  "name": "Talk Trading",
+  "short_name": "TalkTrading",
+  "description": "A social network for traders: share ideas, discuss markets, back your calls with live charts.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B1120",
+  "theme_color": "#0B1120",
+  "icons": [{ "src": "/icon.png", "sizes": "any", "type": "image/png", "purpose": "any" }]
+}

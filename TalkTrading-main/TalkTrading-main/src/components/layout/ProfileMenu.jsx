@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { postService } from '../../services/postService'
 import { DEFAULT_AVATAR } from '../../utils/defaultAvatar'
@@ -7,6 +7,7 @@ import { DEFAULT_AVATAR } from '../../utils/defaultAvatar'
 export default function ProfileMenu() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [open, setOpen] = useState(false)
   const menuRef = useRef(null)
   const [profile, setProfile] = useState(null)
@@ -69,6 +70,28 @@ export default function ProfileMenu() {
             <span className="material-symbols-outlined text-[18px]">settings</span>
             Settings
           </Link>
+          <Link
+            to="/feedback"
+            state={{ from: location.pathname }}
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-on-surface-muted hover:text-on-surface hover:bg-on-surface/5 transition-colors"
+          >
+            <span className="material-symbols-outlined text-[18px]">feedback</span>
+            Send feedback
+          </Link>
+          <Link
+            to="/status"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-on-surface-muted hover:text-on-surface hover:bg-on-surface/5 transition-colors"
+          >
+            <span className="material-symbols-outlined text-[18px]">monitor_heart</span>
+            Service status
+          </Link>
+          <div className="px-4 py-2 border-t border-outline-variant flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-on-surface-muted">
+            <Link to="/terms" onClick={() => setOpen(false)} className="hover:text-on-surface">Terms</Link>
+            <Link to="/privacy" onClick={() => setOpen(false)} className="hover:text-on-surface">Privacy</Link>
+            <Link to="/guidelines" onClick={() => setOpen(false)} className="hover:text-on-surface">Guidelines</Link>
+          </div>
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-bearish hover:bg-bearish/10 transition-colors"

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import Card from '../components/ui/Card'
-import { reelService } from '../services/reelService'
+import { reelService, REEL_REPORT_REASONS } from '../services/reelService'
 import { postService } from '../services/postService'
 import { getSymbols } from '../services/chartService'
 import { useLiveQuotes } from '../hooks/useLiveQuotes'
@@ -61,7 +61,7 @@ async function withAuthors(rawReels) {
   return rawReels.map(r => toReel(r, people))
 }
 
-function ReelActions({ reel, onLike, onSave, onComments, onShare, overlay }) {
+function ReelActions({ reel, onLike, onSave, onComments, onShare, onMore, isOwn, overlay }) {
   const tone = overlay ? 'text-white drop-shadow-md' : 'text-on-surface'
   const item = `flex flex-col items-center gap-1 text-xs font-medium ${tone}`
   const btn = overlay
@@ -93,6 +93,12 @@ function ReelActions({ reel, onLike, onSave, onComments, onShare, overlay }) {
           <Icon name="send" className="text-[24px]" />
         </button>
         Share
+      </div>
+      <div className={item}>
+        <button className={btn} onClick={onMore} aria-label={isOwn ? 'Delete reel' : 'Report reel'}>
+          <Icon name={isOwn ? 'delete' : 'flag'} className="text-[24px]" />
+        </button>
+        {isOwn ? 'Delete' : 'Report'}
       </div>
     </div>
   )
@@ -206,6 +212,60 @@ function ReelComments({ reel, onClose, onAdded, onError }) {
   )
 }
 
+function ReportReel({ reel, onClose, onDone, onError }) {
+  const [reason, setReason] = useState('')
+  const [details, setDetails] = useState('')
+  const [sending, setSending] = useState(false)
+
+  const send = async e => {
+    e.preventDefault()
+    if (!reason || sending) return
+    setSending(true)
+    try {
+      await reelService.report(reel.id, reason, details.trim())
+      onDone()
+    } catch (err) {
+      onError(err.message)
+      setSending(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50" onClick={onClose}>
+      <form
+        onSubmit={send}
+        onClick={e => e.stopPropagation()}
+        className="w-full md:max-w-md flex flex-col gap-3 p-4 rounded-t-2xl md:rounded-2xl bg-surface-card border border-white/[0.06]"
+        role="dialog"
+        aria-label="Report reel"
+      >
+        <h2 className="font-semibold text-on-surface">Why are you reporting this reel?</h2>
+        <div className="flex flex-col gap-1" role="radiogroup">
+          {REEL_REPORT_REASONS.map(([id, label]) => (
+            <label key={id} className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/5 cursor-pointer text-sm text-on-surface">
+              <input type="radio" name="reason" value={id} checked={reason === id} onChange={() => setReason(id)} style={{ accentColor: 'var(--color-primary)' }} />
+              {label}
+            </label>
+          ))}
+        </div>
+        <textarea
+          value={details}
+          onChange={e => setDetails(e.target.value.slice(0, 500))}
+          rows={2}
+          placeholder="Anything else we should know? (optional)"
+          className="w-full resize-none rounded-xl bg-surface-container border border-white/[0.06] px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-muted focus:outline-none focus:border-primary/60"
+        />
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-on-surface-muted hover:text-on-surface">Cancel</button>
+          <button type="submit" disabled={!reason || sending} className="px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-semibold disabled:opacity-40">
+            {sending ? 'Sending…' : 'Report'}
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
 function ReelItem({ reel, index, active, muted, onToggleMute, paused, onTogglePause, quotes, isOwn, following, onFollow, actions }) {
   const videoRef = useRef(null)
   const progressRef = useRef(null)
@@ -277,7 +337,7 @@ function ReelItem({ reel, index, active, muted, onToggleMute, paused, onTogglePa
 
           {/* Mobile actions sit on the video */}
           <div className="md:hidden absolute right-3 bottom-28">
-            <ReelActions reel={reel} {...actions} overlay />
+            <ReelActions reel={reel} {...actions} isOwn={isOwn} overlay />
           </div>
 
           {/* Author, caption, tickers */}
@@ -341,7 +401,7 @@ function ReelItem({ reel, index, active, muted, onToggleMute, paused, onTogglePa
 
         {/* Desktop actions sit beside the video */}
         <div className="hidden md:block pb-6">
-          <ReelActions reel={reel} {...actions} />
+          <ReelActions reel={reel} {...actions} isOwn={isOwn} />
         </div>
       </div>
     </section>
@@ -363,6 +423,7 @@ export default function Reels() {
   const [following, setFollowing] = useState({})
   const [symbolNames, setSymbolNames] = useState({})
   const [commentsFor, setCommentsFor] = useState(null)
+  const [reportFor, setReportFor] = useState(null)
   const viewed = useRef(new Set())
 
   const showError = useCallback(message => setToast(message), [])
@@ -513,6 +574,18 @@ export default function Reels() {
     }
   }
 
+  const removeReel = async reel => {
+    if (!window.confirm('Delete this reel? This cannot be undone.')) return
+    try {
+      await reelService.remove(reel.id)
+      setReels(prev => prev.filter(r => r.id !== reel.id))
+      setActiveIndex(i => Math.max(0, Math.min(i, reels.length - 2)))
+      setToast('Reel deleted')
+    } catch (err) {
+      showError(err.message)
+    }
+  }
+
   const togglePause = useCallback(force => setPaused(p => (typeof force === 'boolean' ? force : !p)), [])
 
   if (reels === null) {
@@ -566,6 +639,7 @@ export default function Reels() {
               onSave: () => save(reel),
               onComments: () => setCommentsFor(reel),
               onShare: () => share(reel),
+              onMore: () => (reel.userId === user?.id ? removeReel(reel) : setReportFor(reel)),
             }}
           />
         ))}
@@ -622,6 +696,17 @@ export default function Reels() {
           onError={showError}
         />
       )}
+
+      {reportFor && (
+        <ReportReel
+          reel={reportFor}
+          onClose={() => setReportFor(null)}
+          onDone={() => { setReportFor(null); setToast('Thanks — the team will review this reel.') }}
+          onError={showError}
+        />
+      )}
+
+      <p className="hidden lg:block fixed bottom-3 right-6 text-[11px] text-on-surface-muted/70">Opinions, not financial advice.</p>
 
       {/* Toast */}
       {toast && (

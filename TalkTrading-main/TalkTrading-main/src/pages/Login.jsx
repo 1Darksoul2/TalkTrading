@@ -52,6 +52,11 @@ export default function Login() {
           <Link to="/signup" className="font-medium transition-opacity hover:opacity-80" style={{ color: authColors.gold }}>
             Create an account
           </Link>
+          <span className="block mt-4 text-xs">
+            <Link to="/terms" className="hover:underline">Terms</Link>{' · '}
+            <Link to="/privacy" className="hover:underline">Privacy</Link>{' · '}
+            <Link to="/guidelines" className="hover:underline">Guidelines</Link>
+          </span>
         </p>
       }
     >

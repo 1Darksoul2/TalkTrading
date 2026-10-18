@@ -1,8 +1,8 @@
+import { Suspense } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { ErrorBoundary } from 'react-error-boundary'
 import TopAppBar from './TopAppBar'
 import BottomNavBar from './BottomNavBar'
-import MarketFAB from './MarketFAB'
 import SideNavBar from './SideNavBar'
 import SessionBanner from './SessionBanner'
 
@@ -28,10 +28,11 @@ export default function AppShell() {
         {/* A crash inside one page shows a message there instead of blanking the whole app; it resets on navigation. */}
         <ErrorBoundary FallbackComponent={PageCrashed} resetKeys={[location.pathname]}
           onError={error => console.error('Page crashed:', error)}>
-          <Outlet />
+          <Suspense fallback={<div className="flex justify-center py-24 text-on-surface-muted text-sm">Loading…</div>}>
+            <Outlet />
+          </Suspense>
         </ErrorBoundary>
       </main>
-      <MarketFAB />
       <BottomNavBar />
     </div>
   )
