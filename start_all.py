@@ -500,7 +500,7 @@ def main():
               f"{'MAVEN_HOME (or unpack Maven into .tools/)' if not mvn else 'JAVA_HOME'}.{RESET}")
 
     if not args.no_frontend:
-        frontend_dir = os.path.join(ROOT_DIR, "frontend")
+        frontend_dir = os.path.join(ROOT_DIR, "TalkTrading-main", "TalkTrading-main")
         vite_script = os.path.join(frontend_dir, "node_modules", "vite", "bin", "vite.js")
         
         if npm_bin:

@@ -6,9 +6,9 @@
 FROM node:22-alpine AS frontend
 ARG PUBLIC_URL
 WORKDIR /app
-COPY frontend/package.json frontend/package-lock.json ./
+COPY TalkTrading-main/TalkTrading-main/package.json TalkTrading-main/TalkTrading-main/package-lock.json ./
 RUN npm ci --no-audit --no-fund
-COPY frontend/ ./
+COPY TalkTrading-main/TalkTrading-main/ ./
 ENV VITE_NEWS_SERVICE_URL=${PUBLIC_URL}/svc/news \
     VITE_STORY_SERVICE_URL=${PUBLIC_URL}/svc/story \
     VITE_CHART_SERVICE_URL=${PUBLIC_URL}/svc/chart \
