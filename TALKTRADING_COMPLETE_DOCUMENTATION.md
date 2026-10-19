@@ -403,6 +403,7 @@ The chat service's two WebSocket tests hang inside the test client (the WebSocke
 | [BETA_TESTING.md](BETA_TESTING.md) | Running the beta; the page for testers |
 | [tests/e2e/README.md](tests/e2e/README.md) | Running the browser tests |
 | Service READMEs in `backend/*/` | Each service's own details |
+| [docs/DFD.pdf](docs/DFD.pdf) | Data-flow diagram |
 | [docs/history/](docs/history/) | Earlier audits and reports: original project write-up (Sept 2026), `DIAGNOSIS.md`, `INITIAL_FILES_AUDIT.md`, `NEW_SERVICES_REVIEW.md`, `IMPLEMENTATION_CHECKLIST.md` |
 
 ---

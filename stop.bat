@@ -1,7 +1,7 @@
 @echo off
 REM =========================================================================
 REM TalkTrading - Unified Stop Script
-REM Stops any running microservices on ports 8000-8004 and 5173
+REM Stops any running microservices on ports 8000-8005, 8080, 8083 and 5173
 REM =========================================================================
 
 cd /d "%~dp0"

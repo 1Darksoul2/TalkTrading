@@ -17,9 +17,9 @@ npm run build    # production build; needs every VITE_*_SERVICE_URL (the gateway
 
 | Area | Service | Code |
 |---|---|---|
-| Sign up, sign in, password reset, posts, comments, likes, follows, profiles, notifications | Post (8004) | `src/services/authService.js`, `postService.js` |
+| Sign up, sign in, posts, comments, likes, follows, profiles, notifications | Post (8004) | `src/services/authService.js`, `postService.js` |
 | Stories, highlights, story settings | Story (8001) | `storyService.js` |
-| Reels (upload, feed, likes, saves, comments) | Reel (8005) | `reelService.js` |
+| Reels (feed, likes, saves, comments, reports) | Reel (8005) | `reelService.js` |
 | End-to-end encrypted chat | E2EE (8003) | `e2eService.js`, `src/crypto/` |
 | Market list, quotes, sparklines | Chart (8002) | `chartService.js` |
 | News and saved articles | News (8000) | `newsService.js` |
