@@ -81,7 +81,7 @@ def main():
     post, comm = f"{base}/svc/post", f"{base}/svc/community"
 
     status, body = call(post, "POST", "/auth/register", body={
-        "username": args.username, "email": args.email, "password": password, "display_name": args.display_name})
+        "username": args.username, "email": args.email, "password": password})
     if status == 200:
         print(f"Created account @{args.username}")
     elif status == 409:
@@ -94,7 +94,9 @@ def main():
         sys.exit(f"Could not sign in ({status}): {body}. If the account exists, check the password.")
     token = body["access_token"]
 
-    status, me = call(post, "GET", "/api/v1/users/me", token)
+    status, me = call(post, "PUT", "/api/v1/users/me", token, {"display_name": args.display_name})
+    if status != 200:
+        sys.exit(f"Could not set the display name ({status}): {me}")
     status, mine = call(post, "GET", f"/api/v1/posts/?author_id={me['author_id']}&limit=50", token)
     if any("Welcome to the TalkTrading beta" in (p.get("caption") or "") for p in (mine or [])):
         print("Welcome post already there")

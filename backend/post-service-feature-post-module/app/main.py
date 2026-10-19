@@ -18,7 +18,6 @@ from app.models.share import Share
 from app.models.hashtag import Hashtag, post_hashtags
 from app.models.mention import Mention
 from app.models.follow import Follow
-from app.models.password_reset import PasswordResetToken  # noqa: F401  (registers the table)
 from app.models.notification import Notification
 
 # Import API Routers

@@ -13,7 +13,6 @@ import Login from './pages/Login'
 // Every page except the feed and sign-in loads on first visit, so the app starts faster.
 const Signup = lazy(() => import('./pages/Signup'))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
-const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const UserProfile = lazy(() => import('./pages/UserProfile'))
 const Chats = lazy(() => import('./pages/Chats'))
 const MarketCharts = lazy(() => import('./pages/MarketCharts'))
@@ -58,7 +57,6 @@ export default function App() {
                     </Route>
 
                     {/* Readable by anyone, signed in or not */}
-                    <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/terms" element={<Terms />} />
                     <Route path="/privacy" element={<Privacy />} />
                     <Route path="/guidelines" element={<Guidelines />} />

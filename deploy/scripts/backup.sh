@@ -13,7 +13,7 @@ mkdir -p "$DEST"
 docker compose exec -T db pg_dumpall -U "$POSTGRES_USER" | gzip > "$DEST/databases.sql.gz"
 
 # Uploaded media, straight from the named volumes
-for vol in post_uploads story_media community_uploads reel_media; do
+for vol in post_uploads story_media community_uploads; do
   docker run --rm -v "talktrading_$vol:/data:ro" -v "$PWD/$DEST:/out" alpine \
     tar czf "/out/$vol.tar.gz" -C /data .
 done

@@ -1,10 +1,11 @@
 // Two new users go through every main feature of the app, against the real services.
 const path = require('path')
-const { execSync } = require('child_process')
 const { BASE, OUT, launch, writePng, makeUser, watch, runner, signup } = require('./lib')
 
+// Where the Reel API is: through the gateway in production, its own port with npm run dev.
+const REEL_BASE = process.env.REEL_URL || (BASE.endsWith(':5173') ? 'http://127.0.0.1:8005' : `${BASE}/svc/reel`)
+
 const PHOTO = writePng(path.join(OUT, 'photo.png'))
-const REEL = path.join(__dirname, 'fixtures', 'sample-reel.webm')
 const A = makeUser('Ann')
 const B = makeUser('Ben')
 
@@ -49,12 +50,21 @@ async function main() {
     await a.waitForURL(`${BASE}/`, { timeout: 15000 })
   })
 
-  await step('Ann publishes a reel', async () => {
-    await a.goto(`${BASE}/create?type=reel`)
-    await a.setInputFiles('input[type=file]', REEL)
-    await a.fill('#create-text', `NVDA reclaiming the 50 day ${A.username}`)
-    await a.getByRole('button', { name: /Share reel/ }).click()
-    await a.waitForURL(`${BASE}/reels`, { timeout: 20000 })
+  // The Reel service stores only a link to a hosted video; the team adds reels with deploy/scripts/add_reel.py.
+  // The same call is made here with Ann's login. (The test video address is not real; playback is not checked.)
+  await step("Ann's reel is published through the Reel API", async () => {
+    await a.goto(`${BASE}/reels`)
+    const status = await a.evaluate(async ({ base, caption }) => {
+      const token = sessionStorage.getItem('talktrading_token') || localStorage.getItem('talktrading_token')
+      const res = await fetch(`${base}/api/v1/reels`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ caption, tags: ['NVDA'], media: { video_url: 'https://example.invalid/nvda.mp4', duration: 12, mime_type: 'video/mp4' } }),
+      })
+      return res.status
+    }, { base: REEL_BASE, caption: `NVDA reclaiming the 50 day ${A.username}` })
+    if (status !== 201) throw new Error(`Reel API answered ${status}`)
+    await a.reload()
     await a.getByText(`NVDA reclaiming the 50 day ${A.username}`).first().waitFor({ timeout: 10000 })
   })
 
@@ -132,12 +142,12 @@ async function main() {
     await a.getByText('Hey Ann, saw your NVDA reel').last().waitFor({ timeout: 15000 })
   })
 
-  await step('Ann logs out and back in with her username and "Remember me"', async () => {
+  await step('Ann logs out and back in with "Remember me"', async () => {
     await a.goto(`${BASE}/`)
     await a.click('button[aria-label="Account menu"]')
     await a.getByRole('button', { name: /Log out/ }).click()
     await a.waitForURL(`${BASE}/login`)
-    await a.fill('#tt-identifier', A.username)
+    await a.fill('#tt-identifier', A.email)
     await a.fill('#tt-password', A.password)
     await a.check('input[type=checkbox]')
     await a.click('button[type=submit]')
@@ -152,38 +162,16 @@ async function main() {
     await p.fill('#tt-identifier', A.email)
     await p.fill('#tt-password', 'not-the-password')
     await p.click('button[type=submit]')
-    await p.getByRole('alert').getByText(/Incorrect email\/username or password/).waitFor({ timeout: 5000 })
+    await p.getByRole('alert').getByText(/Invalid email or password/).waitFor({ timeout: 5000 })
   })
 
-  // Reading the emailed link needs the Post Service log (no mail server in tests):
-  //   RESET_LINK_CMD="docker compose -f deploy/docker-compose.yml logs post"
-  if (process.env.RESET_LINK_CMD) {
-    await step('Forgot password → link → new password works', async () => {
-      const p = await (await browser.newContext()).newPage()
-      watch(p, 'reset', problems, expected)
-      await p.goto(`${BASE}/forgot-password`)
-      await p.fill('#tt-reset-email', A.email)
-      await p.click('button[type=submit]')
-      await p.getByText('Check your email').waitFor({ timeout: 5000 })
-      await p.waitForTimeout(500)
-      const logs = execSync(process.env.RESET_LINK_CMD, { maxBuffer: 1 << 26 }).toString().split('\n')
-      const line = logs.filter(l => l.includes(A.email) && l.includes('reset-password?token=')).pop()
-      if (!line) throw new Error('no reset link found in the Post Service log')
-      const link = new URL(line.slice(line.indexOf('http')).trim())
-      await p.goto(`${BASE}/reset-password${link.search}`)
-      await p.fill('#tt-reset-password', 'Brand-new-pass1')
-      await p.fill('#tt-reset-confirm', 'Brand-new-pass1')
-      await p.click('button[type=submit]')
-      await p.getByText('Password changed').waitFor({ timeout: 5000 })
-      await p.goto(`${BASE}/login`)
-      await p.fill('#tt-identifier', A.email)
-      await p.fill('#tt-password', 'Brand-new-pass1')
-      await p.click('button[type=submit]')
-      await p.waitForURL(`${BASE}/`, { timeout: 10000 })
-    })
-  } else {
-    skip('Forgot password → link → new password works', 'set RESET_LINK_CMD to run it')
-  }
+  await step('"Forgot password?" explains how to get help', async () => {
+    const p = await (await browser.newContext()).newPage()
+    watch(p, 'guest', problems, expected)
+    await p.goto(`${BASE}/login`)
+    await p.getByRole('link', { name: 'Forgot password?' }).click()
+    await p.getByText('passwords are reset by the TalkTrading team').waitFor({ timeout: 5000 })
+  })
 
   await browser.close()
   finish(problems)

@@ -59,6 +59,10 @@ services:
   post:
     <<: *common
     build: ../backend/post-service-feature-post-module
+    # The service's logging middleware adds a layer on every request and fails after about 1,000
+    # (RecursionError). Without changing its code: two worker processes, each replaced after 800
+    # requests, so one is always answering while the other restarts fresh.
+    entrypoint: ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8004 --workers 2 --limit-max-requests 800"]
     environment:
       PORT: "8004"
       POSTGRES_HOST: db
@@ -68,13 +72,6 @@ services:
       SECRET_KEY: ${JWT_SECRET}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${LOGIN_LIFETIME_MINUTES:-10080}
       CORS_ALLOWED_ORIGINS: ${PUBLIC_URL}
-      # Password reset links point here; mail goes out through SMTP_* when set (else the link is logged).
-      PUBLIC_URL: ${PUBLIC_URL}
-      SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      SMTP_FROM: ${SMTP_FROM:-TalkTrading <no-reply@talktrading.app>}
     volumes:
       - post_uploads:/app/uploads
     depends_on:
@@ -121,7 +118,10 @@ services:
 
   reel:
     <<: *common
-    build: ../backend/Reels-main
+    # The Reel service ships without a Dockerfile; this one lives in deploy/docker so its folder stays untouched.
+    build:
+      context: ../backend/Reels-main
+      dockerfile: ../../deploy/docker/reel.Dockerfile
     # Rate limits are per client IP: read it from the gateway's X-Forwarded-For, or every user would share one limit.
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8005", "--proxy-headers", "--forwarded-allow-ips", "*"]
     environment:
@@ -131,9 +131,6 @@ services:
       JWT_SECRET_KEY: ${JWT_SECRET}
       SERVICE_API_KEY: ${REEL_SERVICE_API_KEY}
       BACKEND_CORS_ORIGINS: '["${PUBLIC_URL}"]'
-      MEDIA_DIR: /data/media
-    volumes:
-      - reel_media:/data/media
     depends_on:
       db: { condition: service_healthy }
 
@@ -201,4 +198,3 @@ volumes:
   post_uploads:
   story_media:
   community_uploads:
-  reel_media:

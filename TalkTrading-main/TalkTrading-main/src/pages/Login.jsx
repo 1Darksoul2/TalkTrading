@@ -6,6 +6,8 @@ import SubmitButton from '../components/auth/SubmitButton'
 import FormError from '../components/auth/FormError'
 import { useAuth } from '../context/AuthContext'
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -21,7 +23,8 @@ export default function Login() {
 
   function validate() {
     const e = {}
-    if (!identifier.trim()) e.identifier = 'Email or username is required.'
+    if (!identifier.trim()) e.identifier = 'Email is required.'
+    else if (!EMAIL_RE.test(identifier.trim())) e.identifier = 'Enter the email you signed up with.'
     if (!password)           e.password   = 'Password is required.'
     return e
   }
@@ -34,7 +37,7 @@ export default function Login() {
     setFormError('')
     setSubmitting(true)
     try {
-      await login({ identifier: identifier.trim(), password, remember })
+      await login({ email: identifier.trim(), password, remember })
       navigate(redirectTo, { replace: true })
     } catch (err) {
       setFormError(err.message)
@@ -63,8 +66,9 @@ export default function Login() {
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
         <AuthField
           id="tt-identifier"
-          label="Email or username"
-          autoComplete="username"
+          label="Email"
+          type="email"
+          autoComplete="email"
           placeholder="you@example.com"
           value={identifier}
           onChange={v => { setIdentifier(v); setErrors(prev => ({ ...prev, identifier: undefined })) }}

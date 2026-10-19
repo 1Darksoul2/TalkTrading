@@ -29,9 +29,6 @@ class Settings(BaseSettings):
     BACKEND_CORS_ORIGINS: List[str] = ["*"]
 
     # Media / Storage
-    # Uploaded reel videos and posters are kept here and served under /api/v1/media/files.
-    MEDIA_DIR: str = "./media"
-    MAX_VIDEO_MB: int = 50  # stays under the gateway's 60 MB request limit
     MEDIA_BASE_URL: str = "https://storage.example.com/videos"
     ALLOWED_MEDIA_DOMAINS: List[str] = ["storage.example.com", "cdn.example.com", "localhost"]
 

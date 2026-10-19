@@ -6,7 +6,6 @@ import TabBar from '../components/ui/TabBar'
 import { useAuth } from '../context/AuthContext'
 import { postService } from '../services/postService'
 import { storyService } from '../services/storyService'
-import { reelService } from '../services/reelService'
 import { getSymbols } from '../services/chartService'
 import { useLiveQuotes } from '../hooks/useLiveQuotes'
 import { DEFAULT_AVATAR } from '../utils/defaultAvatar'
@@ -14,14 +13,12 @@ import { DEFAULT_AVATAR } from '../utils/defaultAvatar'
 const TYPES = [
   { id: 'post', label: 'Post' },
   { id: 'story', label: 'Story' },
-  { id: 'reel', label: 'Reel' },
 ]
 
 // Per-type rules: what media is accepted, how many files, and where to go after sharing
 const RULES = {
   post: { accept: 'image/*', maxFiles: 4, maxText: 500, mediaRequired: false, redirect: '/', hint: 'Up to 4 images' },
   story: { accept: 'image/*,video/*', maxFiles: 1, maxText: 120, mediaRequired: true, redirect: '/', hint: 'One photo or video, 9:16 works best' },
-  reel: { accept: 'video/*', maxFiles: 1, maxText: 300, mediaRequired: true, redirect: '/reels', hint: 'One vertical video, up to 3 min' },
 }
 
 const SENTIMENTS = [
@@ -31,57 +28,6 @@ const SENTIMENTS = [
 ]
 
 const MAX_TICKERS = 3
-const MAX_REEL_SECONDS = 180
-
-// Duration, size and a poster frame for a reel, read in the browser before upload.
-// A browser that cannot decode the codec may never answer, so every step has a deadline:
-// without metadata the file is refused; without a decodable frame the reel goes up without a poster.
-function inspectVideo(file) {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file)
-    const video = document.createElement('video')
-    video.preload = 'auto'
-    video.muted = true
-    video.playsInline = true
-    let info = null
-    let settled = false
-    const timers = []
-    const finish = (fn, value) => {
-      if (settled) return
-      settled = true
-      timers.forEach(clearTimeout)
-      video.removeAttribute('src')
-      video.load()
-      URL.revokeObjectURL(url)
-      fn(value)
-    }
-    const unreadable = () => finish(reject, new Error('This browser cannot read this video. Try an MP4 (H.264) or WebM file.'))
-    video.onerror = unreadable
-    timers.push(setTimeout(unreadable, 15000))
-    video.onloadedmetadata = () => {
-      if (!Number.isFinite(video.duration) || video.duration <= 0) return unreadable()
-      info = { duration: video.duration, width: video.videoWidth || null, height: video.videoHeight || null, poster: null }
-      timers.push(setTimeout(() => finish(resolve, info), 5000))
-      video.currentTime = Math.min(1, video.duration / 2)
-    }
-    video.onseeked = () => {
-      if (!video.videoWidth) return finish(resolve, info)
-      const canvas = document.createElement('canvas')
-      canvas.width = video.videoWidth
-      canvas.height = video.videoHeight
-      canvas.getContext('2d').drawImage(video, 0, 0)
-      canvas.toBlob(poster => finish(resolve, { ...info, poster }), 'image/jpeg', 0.85)
-    }
-    video.src = url
-  })
-}
-
-function aspectRatio(w, h) {
-  const gcd = (a, b) => (b ? gcd(b, a % b) : a)
-  const d = gcd(w, h) || 1
-  return `${w / d}:${h / d}`
-}
-
 export default function Create() {
   const [searchParams] = useSearchParams()
   const initialType = TYPES.some(t => t.id === searchParams.get('type')) ? searchParams.get('type') : 'post'
@@ -135,7 +81,7 @@ export default function Create() {
     const accepted = files.filter(f =>
       rules.accept.split(',').some(a => f.type.startsWith(a.replace('*', '')))
     )
-    if (accepted.length < files.length) setToast(type === 'reel' ? 'Reels need a video file' : 'That file type isn\'t supported')
+    if (accepted.length < files.length) setToast('That file type isn\'t supported')
     if (!accepted.length) return
 
     const next = accepted.map(f => ({
@@ -196,32 +142,11 @@ export default function Create() {
     return storyService.createStory({ media_id: uploaded.media_id, caption: text.trim() || null })
   }
 
-  const publishReel = async () => {
-    const file = media[0].file
-    const info = await inspectVideo(file)
-    if (info.duration > MAX_REEL_SECONDS) throw new Error('Reels can be up to 3 minutes long.')
-    const uploaded = await reelService.upload(file, info.poster)
-    return reelService.create({
-      caption: text.trim() || null,
-      tags: tickers,
-      media: {
-        video_url: uploaded.video_url,
-        thumbnail_url: uploaded.thumbnail_url,
-        duration: Math.max(0.1, Number(info.duration.toFixed(2))),
-        ...(info.width && info.height
-          ? { width: info.width, height: info.height, aspect_ratio: aspectRatio(info.width, info.height) }
-          : {}),
-        file_size_bytes: uploaded.file_size_bytes,
-        mime_type: uploaded.mime_type,
-      },
-    })
-  }
-
   const share = async () => {
     if (!canShare) return
     setSharing(true)
     try {
-      await { post: publishPost, story: publishStory, reel: publishReel }[type]()
+      await { post: publishPost, story: publishStory }[type]()
       setToast(`${TYPES.find(t => t.id === type).label} shared`)
       setTimeout(() => navigate(rules.redirect), 900)
     } catch (err) {
@@ -238,7 +163,7 @@ export default function Create() {
       <div className="flex items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-on-surface">Create</h1>
-          <p className="text-sm text-on-surface-muted">Share a post, a story or a reel with the community</p>
+          <p className="text-sm text-on-surface-muted">Share a post or a story with the community</p>
         </div>
         <Button variant="ghost" size="sm" icon="close" onClick={() => navigate(-1)}>Cancel</Button>
       </div>
@@ -254,7 +179,7 @@ export default function Create() {
           <section>
             <div className="flex items-baseline justify-between mb-2">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-on-surface-muted">
-                {type === 'reel' ? 'Video' : 'Media'}{rules.mediaRequired ? '' : ' (optional)'}
+                Media{rules.mediaRequired ? '' : ' (optional)'}
               </h2>
               <span className="text-xs text-on-surface-muted">{rules.hint}</span>
             </div>
@@ -286,7 +211,7 @@ export default function Create() {
                 className="w-full flex flex-col items-center justify-center gap-2 py-8 rounded-xl border border-dashed border-outline-variant text-on-surface-muted hover:border-primary/60 hover:text-on-surface transition-all"
               >
                 <span className="material-symbols-outlined text-[32px] text-primary">
-                  {type === 'reel' ? 'video_call' : type === 'story' ? 'add_a_photo' : 'add_photo_alternate'}
+                  {type === 'story' ? 'add_a_photo' : 'add_photo_alternate'}
                 </span>
                 <span className="text-sm font-semibold">
                   {media.length ? 'Add more' : 'Click to upload or drag a file here'}
@@ -445,7 +370,7 @@ export default function Create() {
                   : <img src={media[0].url} alt="" className="w-full h-full object-cover" />
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/70">
-                  <span className="material-symbols-outlined text-[40px]">{type === 'reel' ? 'smart_display' : 'auto_stories'}</span>
+                  <span className="material-symbols-outlined text-[40px]">auto_stories</span>
                   <span className="text-xs">Your {type} will appear here</span>
                 </div>
               )}
@@ -457,7 +382,6 @@ export default function Create() {
               )}
               {(text || tickers.length > 0) && (
                 <div className="absolute bottom-0 inset-x-0 p-3 pt-10 bg-gradient-to-t from-black/80 to-transparent text-white">
-                  {type === 'reel' && <div className="text-xs font-semibold mb-1">@{username}</div>}
                   {text && <p className={`text-xs break-words ${type === 'story' ? 'text-center text-sm font-semibold' : 'line-clamp-3'}`}>{text}</p>}
                   {tickers.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-2">

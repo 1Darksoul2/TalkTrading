@@ -10,10 +10,11 @@ The Python services share one virtual environment in `venv/` at the project root
 python -m venv venv
 venv\Scripts\activate            # Windows  (macOS/Linux: source venv/bin/activate)
 for %s in (news-service story-service chart-service E2E-main post-service-feature-post-module Reels-main) do pip install -r backend\%s\requirements.txt
+pip install greenlet               # needed by the chat service, not in its requirements
 cd TalkTrading-main\TalkTrading-main && npm install
 ```
 
-(On macOS/Linux use `for s in news-service story-service chart-service E2E-main post-service-feature-post-module Reels-main; do pip install -r backend/$s/requirements.txt; done`.)
+(On macOS/Linux use `for s in news-service story-service chart-service E2E-main post-service-feature-post-module Reels-main; do pip install -r backend/$s/requirements.txt; done; pip install greenlet`.)
 
 ## 🔑 API keys
 
@@ -21,7 +22,6 @@ cd TalkTrading-main\TalkTrading-main && npm install
 |---|---|---|
 | **Finnhub** (news) | Yes, free at [finnhub.io](https://finnhub.io) | `NEWS_API_KEY` |
 | **TradingView** (prices, charts) | **No.** Prices come from TradingView's public feed and the chart is its free widget | — |
-| **Email** (password reset) | Optional: any SMTP provider | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` |
 
 - **On your computer:** copy `.env.example` to `.env` in the project root and fill it in. `start_all.py` passes it to every service.
 - **On the server:** the same names go in `deploy/.env` (created by `deploy/scripts/make_env.py`); then `docker compose up -d`.
@@ -73,7 +73,8 @@ stop.bat
 
 The web app lives in `TalkTrading-main/TalkTrading-main/`. Every page talks to the services above; there is no mock data. In development it finds them on the ports above; a production build gets their addresses from `deploy/docker/gateway.Dockerfile` (one `VITE_*_SERVICE_URL` per service) and refuses to start if one is missing.
 
-- **Accounts:** sign up, sign in with email *or* username ("Remember me" keeps you signed in after the browser closes), and reset a forgotten password. Reset links are emailed when `SMTP_HOST` is set for the Post Service; otherwise the link is printed in the Post Service log.
+- **Accounts:** sign up and sign in with email ("Remember me" keeps you signed in after the browser closes). The Post Service has no password reset, so the team sets a temporary password on request (`deploy/scripts/moderate.sh set-password`); the app's "Forgot password?" page explains this.
+- **Reels:** the Reel Service stores links to videos hosted elsewhere and has no upload, so the team publishes reels with `deploy/scripts/add_reel.py`. Users watch, like, comment, save, share and report them.
 - **Community and Explore** are Java/Spring Boot services. `start_all.py` runs them through Maven and needs **JDK 23+** and Maven; without them it skips those two and says so.
 - **News** needs a free Finnhub key (see API keys above); **prices and charts** come from TradingView and need no key. When either source is unreachable the page says so instead of showing made-up data.
 

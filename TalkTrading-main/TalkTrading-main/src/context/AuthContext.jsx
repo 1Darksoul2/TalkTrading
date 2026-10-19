@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react'
 import { authService } from '../services/authService'
+import { postService } from '../services/postService'
 import { deriveAuthorId } from '../utils/authorId'
 import { getToken, getStoredUser, saveSession, clearSession } from '../utils/session'
 
@@ -35,23 +36,28 @@ export function AuthProvider({ children }) {
     setUser(nextUser)
   }
 
-  const login = useCallback(async ({ identifier, password, remember = false }) => {
-    const { access_token, user: profile } = await authService.login({ identifier, password })
+  const login = useCallback(async ({ email, password, remember = false }) => {
+    const { access_token, user: profile } = await authService.login({ email, password })
     const next = { id: profile.id, username: profile.username, email: profile.email }
     persist(access_token, next, remember)
     return next
   }, [])
 
   const signup = useCallback(async ({ fullName, username, email, password }) => {
-    await authService.register({ username, email, password, displayName: fullName })
-    const { access_token, user: profile } = await authService.login({ identifier: email, password })
+    await authService.register({ username, email, password })
+    const { access_token, user: profile } = await authService.login({ email, password })
     const next = { id: profile.id, username: profile.username, email: profile.email }
     persist(access_token, next, false)
+    // Registration takes no name, so the full name is saved on the new profile right away.
+    if (fullName) {
+      try {
+        await postService.updateMyProfile({ display_name: fullName })
+      } catch (err) {
+        console.error('Could not save your name; you can add it in Edit Profile:', err)
+      }
+    }
     return next
   }, [])
-
-  const requestPasswordReset = useCallback(email => authService.requestPasswordReset(email), [])
-  const resetPassword = useCallback((resetToken, newPassword) => authService.resetPassword({ token: resetToken, newPassword }), [])
 
   const logout = useCallback(() => {
     clearSession()
@@ -86,7 +92,7 @@ export function AuthProvider({ children }) {
       user: userWithAuthorId,
       isAuthenticated: Boolean(token && user),
       expiresAt: token ? Date.now() + msUntilExpiry(token) : null,
-      login, signup, logout, requestPasswordReset, resetPassword,
+      login, signup, logout,
     }}>
       {children}
     </AuthContext.Provider>

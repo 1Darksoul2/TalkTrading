@@ -39,7 +39,7 @@ async function request(path, { method = 'GET', body, params } = {}) {
 }
 
 export const reelService = {
-  // Uploaded files come back as service-relative paths.
+  // Reels point at videos hosted elsewhere (a CDN); relative paths are resolved against the service.
   mediaUrl(path) {
     if (!path) return ''
     return path.startsWith('/') ? `${REEL_SERVICE_URL}${path}` : path
@@ -57,30 +57,6 @@ export const reelService = {
   addComment: (id, content, parentId) => request(`/reels/${id}/comments`, { method: 'POST', body: { content, parent_id: parentId } }),
   deleteComment: commentId => request(`/reels/comments/${commentId}`, { method: 'DELETE' }),
   report: (id, reason, description) => request(`/moderation/reels/${id}/report`, { method: 'POST', body: { reason, description: description || null } }),
-
-  /** Upload the video (and a poster frame). Returns { video_url, thumbnail_url, mime_type, file_size_bytes }. */
-  async upload(video, poster) {
-    const form = new FormData()
-    form.append('video', video)
-    if (poster) form.append('poster', poster, 'poster.jpg')
-    let response
-    try {
-      response = await fetch(`${REEL_SERVICE_URL}/api/v1/media`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${getToken()}` },
-        body: form,
-      })
-    } catch {
-      throw new ReelError('Upload failed. Check your connection and try again.', 0)
-    }
-    const data = await response.json().catch(() => null)
-    if (response.status === 401) {
-      window.dispatchEvent(new Event('tt:unauthorized'))
-      throw new ReelError('Your session expired. Please log in again.', 401)
-    }
-    if (!response.ok) throw new ReelError(messageFrom(data, `Upload failed (${response.status}).`), response.status)
-    return data.data
-  },
 }
 
 export const REEL_REPORT_REASONS = [

@@ -30,25 +30,25 @@
 
 ## 1. Status at a glance
 
-**Ready for a closed beta** with trusted testers, once it is deployed on a server with a domain, email (SMTP) and a news key.
+**Ready for a closed beta** with trusted testers, once it is deployed on a server with a domain and a news key.
 
 | Area | State |
 |---|---|
-| Features | All built and connected to real services; no mock data anywhere |
+| Features | All built and connected to the real services, which run their original code; no mock data anywhere |
 | End-to-end check | 17 user flows pass in a real browser against the production Docker stack (PostgreSQL, gateway, production build), and every page passes on desktop and phone size |
-| Service tests | 500 tests across the 8 services; 498 pass and 2 chat WebSocket tests hang in the test harness (see [§11](#11-testing)) |
+| Service tests | Each service's own test suite passes (see [§11](#11-testing)); the 2 chat WebSocket tests hang in their test harness |
 | CI | GitHub Actions runs every suite, the web app's lint and build, and validates the deployment files |
 | Deployment | Docker Compose stack with HTTPS gateway, backups, restore, moderation and starter-content scripts — all exercised end to end |
-| Not verified yet | Live prices (TradingView), news (Finnhub) and outgoing email were blocked in the build environment; they need checking on the real server |
+| Not verified yet | Live prices (TradingView) and news (Finnhub) were blocked in the build environment; check them on the real server with the in-app Service status page |
 
 Readiness by part, honestly:
 
 | Part | Done | What is missing |
 |---|---|---|
-| Features | ~95% | Block/mute for posts and chats, account self-deletion |
+| Features | ~90% | Reel upload in the app (the Reel service stores only links to hosted videos), password reset by email, block/mute, account self-deletion |
 | Wiring and stability | ~95% | Load testing with many simultaneous users |
 | Deployment and operations | ~90% | First real deploy; outside data feeds verified live |
-| Safety | ~75% | Email verification at sign-up, an admin screen (scripts exist), server-side password rules |
+| Safety | ~70% | Email verification, password reset by email, server-side password rules, block/mute and an admin screen all need changes to the Post Service; scripts cover moderation and password resets meanwhile |
 | Phones | ~85% | Tested at iPhone size in a browser; not yet on real devices |
 
 ---
@@ -59,10 +59,10 @@ A social network for traders: people share trade ideas, discuss markets and back
 
 | Area | What users can do |
 |---|---|
-| **Accounts** | Sign up (full name, username, email), sign in with email *or* username, "Remember me", forgot/reset password by email, edit profile and photo |
+| **Accounts** | Sign up (full name, username, email), sign in with email, "Remember me", edit profile and photo. A forgotten password is reset by the team (see [§10](#10-operating-the-beta)) |
 | **Home feed** | Posts with photos and videos, `$TICKERS`, `#hashtags`, `@mentions`; like, comment (threaded), save, share, follow; Everyone / Following tabs |
 | **Stories** | 24-hour photo/video stories with stickers, viewers, replies, reactions, polls, highlights, Close Friends, hide-from, mute, archive |
-| **Reels** | Upload short vertical videos (up to 3 min / 50 MB), feed with like, save, comment, share, follow, report, delete |
+| **Reels** | Vertical video feed with like, save, comment, share, follow, report and delete. Reels are published by the team from hosted videos (`add_reel.py`); the Reel service stores only the video link |
 | **Chats** | One-to-one messages, end-to-end encrypted in the browser |
 | **Communities** | Create, discover, join and leave trading groups |
 | **Explore** | For You, Trending, Popular and Recent feeds; people search; hashtag pages |
@@ -107,7 +107,7 @@ TalkTrading/
                            │  HTTPS, one address                              TradingView (prices, chart widget)
                            ▼                                                  Yahoo Finance (sparklines)
   ┌──────────────────────────────────────────────────────────┐               Finnhub (news)
-  │ Gateway — Caddy (deploy/Caddyfile)                        │               SMTP provider (reset emails)
+  │ Gateway — Caddy (deploy/Caddyfile)                        │               Video host / CDN (reel videos)
   │  /                → the web app (static files)            │
   │  /svc/<service>/… → the service, prefix removed           │
   │  security headers, rate limits, HTTPS certificates        │
@@ -119,7 +119,7 @@ TalkTrading/
       │      │      │      │      │       │         │
       └──────┴──────┴──── PostgreSQL 16 (one database per service) ──┘
                      Redis (chat rate limits, Explore cache)
-                     Volumes: post_uploads, story_media, reel_media, community_uploads
+                     Volumes: post_uploads, story_media, community_uploads
 ```
 
 - **One public address.** Only the gateway is reachable from the internet (ports 80/443). Services and databases sit on a private Docker network.
@@ -133,9 +133,9 @@ TalkTrading/
 
 | Service | Folder | Port | Stack | Data | Login check | Health | Tests |
 |---|---|---|---|---|---|---|---|
-| **Post** (accounts, posts, comments, likes, saves, shares, follows, profiles, mentions, hashtags, notifications) | `backend/post-service-feature-post-module` | 8004 | Python 3.9, FastAPI | `post` DB, `post_uploads` | Issues tokens | `/health/` | 84 |
+| **Post** (accounts, posts, comments, likes, saves, shares, follows, profiles, mentions, hashtags, notifications) | `backend/post-service-feature-post-module` | 8004 | Python 3.9, FastAPI | `post` DB, `post_uploads` | Issues tokens | `/health/` | 76 |
 | **Story** (stories, stickers, highlights, privacy lists, story notifications, data export) | `backend/story-service` | 8001 | Python 3.12, FastAPI | `story` DB, `story_media` | JWT | `/health` | 148 |
-| **Reel** (reels, uploads, comments, likes, bookmarks, shares, reports) | `backend/Reels-main` | 8005 | Python 3.12, FastAPI | `reel` DB, `reel_media` | JWT | `/api/v1/health` | 40 |
+| **Reel** (reels, comments, likes, bookmarks, shares, reports) | `backend/Reels-main` | 8005 | Python 3.12, FastAPI | `reel` DB | JWT | `/api/v1/health` | 36 |
 | **E2EE chat** (devices, key bundles, conversations, encrypted messages, WebSocket) | `backend/E2E-main` | 8003 | Python 3.11, FastAPI | `e2e` DB, Redis | JWT | `/health` | 27 |
 | **News** (ingestion from a provider, articles, saved articles) | `backend/news-service` | 8000 | Python 3.12, FastAPI | `news` DB | JWT for bookmarks | `/health` | 23 |
 | **Chart** (20 symbols, quotes, sparklines) | `backend/chart-service` | 8002 | Python 3.11, FastAPI | `chart` DB | none (public data) | `/health` | 12 |
@@ -144,9 +144,9 @@ TalkTrading/
 
 Notes per service:
 
-- **Post** is the identity authority: `/auth/register`, `/auth/login` (email or username), `/auth/password-reset` and `/auth/password-reset/confirm`. Users have a UUID `id`; the post tables use an integer `author_id` derived from it with CRC32 (`derive_author_id`), which the web app reproduces in `src/utils/authorId.js`.
+- **Post** is the identity authority: `/auth/register` and `/auth/login` (by email). Users have a UUID `id`; the post tables use an integer `author_id` derived from it with CRC32 (`derive_author_id`), which the web app reproduces in `src/utils/authorId.js`. Registration takes no name, so the web app saves the full name with `PUT /api/v1/users/me` straight after sign-up. Its logging middleware adds a layer on every request and fails after about 1,000 requests in one process; the deployment runs it as two workers that each restart after 800 requests (see [§9](#9-deploying-it)).
 - **Story** stores uploads on disk and serves them through signed, expiring URLs; it also answers the gateway's `/internal/gateway-auth` check (blocked from outside).
-- **Reel** stores uploaded videos and poster frames in `MEDIA_DIR`, checks the file type from its bytes, and keeps a moderation audit log. Moderation actions need `X-Service-API-Key`.
+- **Reel** stores reels as links to videos hosted elsewhere (a CDN or storage bucket); it has no upload of its own. The team publishes reels with `deploy/scripts/add_reel.py`. Moderation actions need `X-Service-API-Key`.
 - **E2EE** never sees private keys or plaintext; it stores public key bundles and ciphertext and delivers over WebSocket. See [§6](#6-identity-security-and-privacy).
 - **News** pulls from one provider (`NEWS_PROVIDER`, default Finnhub) with `NEWS_API_KEY`; without a key the feed is empty and the app says so.
 - **Chart** reads live quotes from TradingView's public scanner (cached 60 s; no account or key needed) and 7-day sparklines from Yahoo Finance (cached 15 min). When those are unreachable, the Markets page says "Live prices are unavailable" instead of showing numbers.
@@ -160,7 +160,7 @@ Notes per service:
 
 **Community and Explore.** These trust an `X-User-Id` header. The gateway deletes any `X-User-Id`/`X-User-Roles` the browser sends, asks the Story Service (`/internal/gateway-auth`) to verify the token, and sets `X-User-Id` only from a valid login. Nobody can impersonate another user or claim admin roles through these headers.
 
-**Password reset.** A one-time token (only its SHA-256 is stored) valid for 30 minutes is emailed through `SMTP_*`; without SMTP the link is written to the Post Service log. Using it changes the password and invalidates other outstanding links. The response is the same whether or not the email exists.
+**Forgotten passwords.** The Post Service has no password reset, so the team sets a temporary password on request with `moderate.sh set-password <email>` (the hash is made by the Post Service's own password function); the app's "Forgot password?" page explains this and links to the support email.
 
 **Gateway protections.**
 - 10 sign-in/sign-up attempts per minute per address, 900 API calls per minute per address overall.
@@ -186,11 +186,11 @@ Notes per service:
 
 | Page | Route | Services |
 |---|---|---|
-| Sign in / Sign up / Forgot / Reset password | `/login` `/signup` `/forgot-password` `/reset-password` | Post |
+| Sign in / Sign up / Forgot password (help page) | `/login` `/signup` `/forgot-password` | Post |
 | Home feed, stories tray, composer | `/` | Post, Story, Chart (ticker strip) |
 | Post detail, hashtag page | `/p/:id` `/tags/:tag` | Post |
 | Reels | `/reels` | Reel, Post (authors, follow), Chart (ticker prices) |
-| Create (post / story / reel) | `/create` | Post, Story, Reel, Chart (ticker search) |
+| Create (post / story) | `/create` | Post, Story, Chart (ticker search) |
 | Profile | `/profile` `/profile/:username` | Post, Story |
 | Chats | `/chats` | E2EE, Post (names) |
 | Communities | `/communities` | Community |
@@ -224,6 +224,7 @@ Notes per service:
 python -m venv venv
 venv\Scripts\activate                     # macOS/Linux: source venv/bin/activate
 for %s in (news-service story-service chart-service E2E-main post-service-feature-post-module Reels-main) do pip install -r backend\%s\requirements.txt
+pip install greenlet               # needed by the chat service, not in its requirements
 cd TalkTrading-main\TalkTrading-main && npm install
 
 # every time
@@ -245,7 +246,7 @@ Then open http://localhost:5173 and sign up. Options: `--backend-only`, `--check
 | 8083 | Explore | in memory |
 | 5173 | Web app | — |
 
-**Keys and settings:** copy `.env.example` to `.env` in the project root and fill it in; `start_all.py` passes it to every service. Only Finnhub (news) needs a key; TradingView (prices and charts) needs none. Without SMTP settings, password-reset links appear in the Post Service's console output. The in-app **Service status** page shows whether news articles and live prices are arriving.
+**Keys and settings:** copy `.env.example` to `.env` in the project root and fill it in; `start_all.py` passes it to every service. Only Finnhub (news) needs a key; TradingView (prices and charts) needs none. The in-app **Service status** page shows whether news articles and live prices are arriving.
 
 **Trying the production setup locally:** `cd deploy && python scripts/make_env.py --local && docker compose up -d --build`, then open http://localhost:8088.
 
@@ -266,6 +267,11 @@ The gateway obtains and renews the HTTPS certificate itself. All settings live i
 
 Services in `docker-compose.yml`: `gateway`, `db` (PostgreSQL 16), `redis`, `post`, `story`, `news`, `chart`, `reel`, `e2e`, `community`, `explore`.
 
+The service code is deployed exactly as it is in `backend/`. What the deployment adds around it lives in `deploy/`:
+- **Post** runs as two workers that each restart after 800 requests, and the gateway retries a request once if a worker is restarting. This keeps the Post Service's logging middleware below the point (about 1,000 requests per process) where it fails.
+- **Reel** is built from `deploy/docker/reel.Dockerfile`; **E2EE** from `deploy/docker/e2e.Dockerfile`, which also installs `greenlet` (needed by its database library but missing from its requirements).
+- Reel and E2EE read the real client address from the gateway, so their rate limits apply per user; E2EE writes no access log because its WebSocket URL carries the login token.
+
 ---
 
 ## 10. Operating the beta
@@ -282,6 +288,8 @@ Everything runs from `/opt/talktrading/deploy` on the server. The full routine i
 | Recent content | `sh scripts/moderate.sh recent` |
 | Hide / restore | `moderate.sh hide-post <id>` · `restore-post` · `hide-reel <id>` · `restore-reel` · `end-story <id>` · `close-story-reports <id>` |
 | Look up a user | `sh scripts/moderate.sh user <username>` |
+| Forgotten password | `sh scripts/moderate.sh set-password <email>` (prompts for a temporary password; send it to the user privately) |
+| Publish a reel | `python3 scripts/add_reel.py --url https://your-domain.com --email team@… --video https://cdn…/clip.mp4 --duration 42 --caption "…" --tickers NVDA` (the video must already be hosted over HTTPS) |
 | Beta numbers | `sh scripts/moderate.sh stats` |
 | Starter content | `python3 scripts/seed_beta.py --url … --email …` (safe to run again) |
 | Update to a new version | `git pull && docker compose up -d --build` |
@@ -294,22 +302,22 @@ Everything runs from `/opt/talktrading/deploy` on the server. The full routine i
 
 | Service | Tests | Runs on |
 |---|---|---|
-| Post | 84 | Python 3.9 |
+| Post | 76 | Python 3.9 |
 | Story | 148 | Python 3.12 |
-| Reel | 40 | Python 3.12 |
-| E2EE chat | 25 + 2 WebSocket tests (see below) | Python 3.11 |
+| Reel | 36 | Python 3.12 |
+| E2EE chat | 25 + 2 WebSocket tests (see below) | Python 3.11 (plus `greenlet`) |
 | News | 23 | Python 3.12 (SQLite) |
 | Chart | 12 | Python 3.11 |
 | Community | 110 | Java 23 |
 | Explore | 56 | Java 23 |
-| **Total** | **500** (498 run in the blocking CI jobs) | |
+| **Total** | **492** (490 run in the blocking CI jobs) | |
 
 The chat service's two WebSocket tests hang inside the test client (the WebSocket itself works, as the browser tests show). CI runs them in a separate job that cannot block a merge.
 
 **CI** (`.github/workflows/ci.yml`, on every push to `main` and every pull request): all suites above on their Dockerfile's version; web app lint and production build; `docker compose config`; gateway image build and Caddyfile validation; launcher syntax.
 
 **Browser tests** (`tests/e2e/`, run against a running stack, see its README):
-- `flows.js` — two new users: sign-up, post with photo and ticker, story, reel upload, follow/like/comment on a reel, report a reel, feed, notifications, create and join a community, people search, profile, encrypted chat both ways, username login with "Remember me", wrong password, password reset (17 steps).
+- `flows.js` — two new users: sign-up (with the full name saved), post with photo and ticker, story, a reel published through the Reel API, follow/like/comment on the reel, report it, feed, notifications, create and join a community, people search, profile, encrypted chat both ways, sign-in with "Remember me", wrong password, the forgot-password help page (17 steps).
 - `pages.js` — every page opens without a crash, failed call or console error.
 - `mobile.js` — every page fits an iPhone-size screen; Market and Create are reachable.
 - `a11y.js` — every page in the dark and light themes has no serious or critical accessibility problem (axe-core: contrast, names of buttons and links, links not told apart by colour alone).
@@ -323,6 +331,9 @@ The chat service's two WebSocket tests hang inside the test client (the WebSocke
 | Limitation | Effect | Plan |
 |---|---|---|
 | No email verification at sign-up | Anyone can register with any address | Phase 3 |
+| No password reset by email | The team sets a temporary password with `moderate.sh set-password` | Needs a Post Service change |
+| No reel upload in the app | Reels are published by the team from hosted videos with `add_reel.py` | Needs a Reel Service upload endpoint and video storage |
+| Post Service worker restarts | Each worker restarts every 800 requests; the gateway retries, so users see nothing | Goes away when the Post logging middleware is fixed |
 | No admin screen | Moderation is done with `moderate.sh` on the server | Phase 3 |
 | Password rules only in the sign-up form | Someone calling the API directly could set a weak password | Phase 3 |
 | No block/mute for posts and chats | Only stories have mute/hide | Phase 3 |
@@ -352,8 +363,14 @@ The chat service's two WebSocket tests hang inside the test client (the WebSocke
 
 ## 14. Change log
 
+**19 October 2026 — core services back to their original code**
+- The Post, Reel and E2EE service folders are again exactly as they were before this work (the Community and Explore folders were never changed). Changes made earlier inside them were undone: username sign-in, full name at registration, password reset by email, the reel video upload endpoint, the Post crash fix, and the E2EE requirements fix.
+- The web app was adapted: sign-in with email; the full name is saved to the profile right after sign-up; "Forgot password?" is a help page; Create offers Post and Story; the Reels page shows reels the team publishes.
+- The deployment covers what the code changes did: Post runs as two workers restarting every 800 requests with a gateway retry; `greenlet` is installed by the E2EE Dockerfile; the Reel Dockerfile moved to `deploy/docker/`.
+- New operator tools: `moderate.sh set-password` and `scripts/add_reel.py`. SMTP settings removed (the Post Service sends no email).
+
 **19 October 2026 — polish**
-- One `.env` for keys: `.env.example` at the project root, read by `start_all.py` and passed to every service; `make_env.py` writes labelled places for the Finnhub key and email settings in `deploy/.env`. TradingView needs no key.
+- One `.env` for keys: `.env.example` at the project root, read by `start_all.py` and passed to every service; `make_env.py` writes a labelled place for the Finnhub key in `deploy/.env`. TradingView needs no key.
 - Service status page shows whether news articles are arriving (to confirm the Finnhub key).
 - Accessibility and themes: light theme fixed (some cards stayed dark navy with dark text; gold, green, red and grey text now meet WCAG AA contrast on white), warnings use a theme-aware colour, settings switches are named by their row, profile links and follower counts are announced correctly, links in text are underlined. Automated scan: no serious or critical issues on any page in dark or light; no console warnings in any theme.
 - New browser test `tests/e2e/a11y.js`.
@@ -362,15 +379,14 @@ The chat service's two WebSocket tests hang inside the test client (the WebSocke
 - Web app: Terms, Privacy and Guidelines pages; feedback page; service status page; 404 page; reel report and delete; Market and Create reachable on phones (the floating Market button covered content); scrollable tab bars; pages load on demand (first download 747 → 443 KB); web app manifest and icon.
 - Security: the chat service no longer writes access logs (its WebSocket URL carries the login token, which uvicorn logged in full); the gateway's log keeps the URL with the token removed. Sign-in pages explain the gateway's rate limit ("Too many attempts from this network") instead of a generic failure.
 - Deployment: gateway build sends only the web app and Caddyfile (a local `node_modules` from another OS used to break the image, and the whole repo including `deploy/.env` was sent to Docker); Reel and E2EE services read the real client address so rate limits are per user; `SUPPORT_EMAIL` setting.
-- Operations: backups include reel videos; `restore.sh`; `moderate.sh`; `seed_beta.py`; `BETA_TESTING.md`.
+- Operations: `backup.sh` covers every upload volume; `restore.sh`; `moderate.sh`; `seed_beta.py`; `BETA_TESTING.md`.
 - Quality: CI workflow; browser test suite in `tests/e2e`.
 - Documentation: this file rewritten; older reports moved to `docs/history/`.
 
 **18 October 2026 — new web app connected**
 - The `TalkTrading-main` web app replaced the previous one and was connected to all eight services; all mock data removed.
-- Reel Service joined the stack (video upload endpoint, Dockerfile, gateway route, database).
-- Post Service: sign-in with username, full name at sign-up, password reset; fixed a crash after ~1,000 requests (log record factory wrapped on every request).
-- E2EE Service: requires `sqlalchemy[asyncio]` (fresh installs failed to start).
+- Reel Service joined the stack (Dockerfile, gateway route, database).
+- Post, Reel and E2EE code changes made on this day were undone on 19 October (see above).
 - `start_all.py` requires JDK 23 (the Java services compile with 23).
 
 **September – October 2026 — earlier phases** (details in `docs/history/`)
@@ -393,14 +409,14 @@ The chat service's two WebSocket tests hang inside the test client (the WebSocke
 
 ## Appendix A — API reference
 
-Generated from each service's own OpenAPI description on 19 October 2026 (227 endpoints; internal and advertising
+Generated from each service's own OpenAPI description on 19 October 2026 (224 endpoints; internal and advertising
 endpoints omitted). In production every path is reached through the gateway under its public base, e.g.
 `https://your-domain.com/svc/post/api/v1/posts/`. Locally, call the port directly, e.g. `http://127.0.0.1:8004/api/v1/posts/`.
 Full request and response details: each service's `/docs` page (Python) or `/swagger-ui.html` (Java).
 
 ### Post Service — accounts, posts, comments, likes, saves, shares, follows, profiles, notifications
 
-Public base: `/svc/post` · 87 endpoints
+Public base: `/svc/post` · 85 endpoints
 
 | Method | Path | What it does |
 |---|---|---|
@@ -447,8 +463,6 @@ Public base: `/svc/post` · 87 endpoints
 | `GET` | `/api/v1/users/{user_id}/following` | Following |
 | `GET` | `/api/v1/users/{user_id}/mentions` | Mentions |
 | `POST` | `/auth/login` | Login |
-| `POST` | `/auth/password-reset` | Request Password Reset |
-| `POST` | `/auth/password-reset/confirm` | Confirm Password Reset |
 | `POST` | `/auth/register` | Register |
 | `GET` | `/comments/{comment_id}` | Read Comment By Id |
 | `PUT` | `/comments/{comment_id}` | Edit Comment Content |
@@ -548,16 +562,15 @@ Public base: `/svc/story` · 49 endpoints
 | `GET` | `/story-settings` | Read Settings |
 | `PUT` | `/story-settings` | Write Settings |
 
-### Reel Service — reels, uploads, comments, likes, bookmarks, reports
+### Reel Service — reels, comments, likes, bookmarks, reports
 
-Public base: `/svc/reel` · 19 endpoints
+Public base: `/svc/reel` · 18 endpoints
 
 | Method | Path | What it does |
 |---|---|---|
 | `GET` | `/` | Root |
 | `GET` | `/api/v1/feed` | Get Feed |
 | `GET` | `/api/v1/health` | Basic health status |
-| `POST` | `/api/v1/media` | Upload Reel Media |
 | `POST` | `/api/v1/moderation/reels/{reel_id}/action` | Moderate Reel |
 | `POST` | `/api/v1/moderation/reels/{reel_id}/report` | Report Reel |
 | `GET` | `/api/v1/moderation/reports` | Get Reports |
@@ -699,4 +712,4 @@ Created by `scripts/make_env.py`; edit, then run `docker compose up -d` (add `--
 | `LOGIN_LIFETIME_MINUTES` | How long a login lasts (default 10080 = 7 days) |
 | `REEL_SERVICE_API_KEY` | Lets `moderate.sh` moderate reels |
 | `NEWS_PROVIDER`, `NEWS_API_KEY` | News source (default Finnhub) and its key. TradingView needs no key |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | Outgoing mail for password reset (optional; without it links go to the log) |
+

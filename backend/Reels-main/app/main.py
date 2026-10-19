@@ -1,7 +1,5 @@
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-import os
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -50,8 +48,6 @@ def create_application() -> FastAPI:
 
     # Mount API routers
     app.include_router(api_router, prefix=settings.API_V1_PREFIX)
-    os.makedirs(settings.MEDIA_DIR, exist_ok=True)
-    app.mount(f"{settings.API_V1_PREFIX}/media/files", StaticFiles(directory=settings.MEDIA_DIR), name="media")
 
     # Root health endpoint
     @app.get("/", tags=["Root"])

@@ -604,10 +604,9 @@ export default function Reels() {
         ) : (
           <>
             <h1 className="text-lg font-semibold text-on-surface">No reels yet</h1>
-            <p className="text-sm text-on-surface-muted">Be the first to share a short chart breakdown.</p>
+            <p className="text-sm text-on-surface-muted">Short chart breakdowns from the TalkTrading team will appear here.</p>
           </>
         )}
-        <Link to="/create?type=reel" className="inline-block px-5 py-2 rounded-xl bg-primary text-on-primary text-sm font-bold">Create a reel</Link>
       </div>
     )
   }

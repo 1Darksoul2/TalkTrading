@@ -6,7 +6,7 @@ const { BASE, OUT, launch, makeUser, watch, runner, signup } = require('./lib')
 
 const AXE = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8')
 const SIGNED_OUT = ['/login', '/signup', '/forgot-password', '/terms', '/privacy', '/guidelines']
-const SIGNED_IN = ['/', '/communities', '/explore', '/reels', '/create', '/create?type=reel', '/chats', '/news', '/market',
+const SIGNED_IN = ['/', '/communities', '/explore', '/reels', '/create', '/chats', '/news', '/market',
   '/market/AAPL', '/profile', '/notifications', '/settings', '/settings/appearance', '/feedback', '/status', '/this-page-does-not-exist']
 
 async function scan(page) {

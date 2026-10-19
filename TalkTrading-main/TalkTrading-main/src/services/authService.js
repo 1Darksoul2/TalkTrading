@@ -41,21 +41,20 @@ async function post(path, options, fallbackMessage) {
 }
 
 export const authService = {
-  register({ username, email, password, displayName }) {
+  register({ username, email, password }) {
     return post(
       '/auth/register',
       {
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password, display_name: displayName }),
+        body: JSON.stringify({ username, email, password }),
       },
       'Registration failed. Please try again.'
     )
   },
 
-  // `identifier` is the email address or the username.
-  login({ identifier, password }) {
+  login({ email, password }) {
     const body = new URLSearchParams()
-    body.set('username', identifier)
+    body.set('username', email)   // the Post Service's login form names the email field "username"
     body.set('password', password)
     return post(
       '/auth/login',
@@ -63,29 +62,7 @@ export const authService = {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body,
       },
-      'Incorrect email/username or password.'
-    )
-  },
-
-  requestPasswordReset(email) {
-    return post(
-      '/auth/password-reset',
-      {
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      },
-      'Could not send the reset link. Please try again.'
-    )
-  },
-
-  resetPassword({ token, newPassword }) {
-    return post(
-      '/auth/password-reset/confirm',
-      {
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, new_password: newPassword }),
-      },
-      'Could not change the password. Please try again.'
+      'Invalid email or password'
     )
   },
 }

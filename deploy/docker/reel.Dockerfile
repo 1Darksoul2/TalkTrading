@@ -1,3 +1,5 @@
+# The Reel service (backend/Reels-main) ships without a Dockerfile; this one is kept here so its folder stays
+# untouched, and is paired with reel.Dockerfile.dockerignore.
 FROM python:3.12-slim
 
 WORKDIR /service

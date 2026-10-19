@@ -113,7 +113,7 @@ Internet ──HTTPS──> gateway (Caddy)  ── /            the React app
                                      ── /svc/news    News
                                      ── /svc/chart   Prices
                                      ── /svc/e2ee    Encrypted chat (+ WebSocket)
-                                     ── /svc/reel    Reels (short videos, uploads)
+                                     ── /svc/reel    Reels (links to hosted videos)
                                      ── /svc/community  ┐ login checked by the gateway,
                                      ── /svc/explore    ┘ identity set by the gateway
               PostgreSQL (one database per service) · Redis (cache) · private network only
@@ -130,7 +130,9 @@ What the gateway does for safety:
 
 - **Password rules are enforced by the sign-up form only** (8+ characters, letters and numbers). The Post API itself accepts any password, so someone calling the API directly could still set a weak one.
 - **Logins last 7 days** (`LOGIN_LIFETIME_MINUTES` in `.env`). There is no "log out everywhere"; if a token leaks it stays valid until it expires. Changing `JWT_SECRET` logs everyone out.
-- **Password reset needs a mail server.** "Forgot password" emails a one-time link (valid 30 minutes). Add `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` and `SMTP_FROM` to `.env` (any provider: Postmark, Mailgun, Gmail app password...) and run `docker compose up -d`. Until then the link is only written to the Post service log (`docker compose logs post | grep reset-password`). There is no email verification at sign-up.
+- **No password reset by email.** The Post service has none. When a tester forgets their password, set a temporary one with `sh scripts/moderate.sh set-password <email>` and send it to them privately; the app's "Forgot password?" page tells them to contact `SUPPORT_EMAIL`. There is no email verification at sign-up.
+- **Reels are published by the team.** The Reel service stores a link to a video hosted elsewhere (any HTTPS address that serves the file: a CDN or storage bucket). Publish one with `python3 scripts/add_reel.py --url https://your-domain.com --email team@your-domain.com --video https://…/clip.mp4 --duration 42 --caption "…" --tickers NVDA`. Any `https:` host is allowed by the gateway's Content-Security-Policy.
+- **Post restarts its workers.** The Post service's logging fails after about 1,000 requests in one process, so it runs as two workers that each restart after 800 requests, and the gateway retries a request once during a restart. Users see nothing; `docker compose logs post` shows the restarts.
 - **Community roles:** moderator/owner actions inside a community still rely on Community's own data; nobody can fake a role header any more.
 
 ## Updating a server that was set up before Reels existed
@@ -148,9 +150,9 @@ docker compose up -d --build
 
 - [ ] Site opens on `https://` with a valid certificate; `http://` redirects to it.
 - [ ] Sign up, post with a photo, story, reel, chat between two accounts, news, chart, community, explore all work.
-- [ ] "Forgot password" delivers an email (SMTP settings in `.env`).
+- [ ] `moderate.sh set-password` works on a test account, and `add_reel.py` publishes a reel that plays on a phone.
 - [ ] `docker compose ps` shows every service `running` / `healthy`.
 - [ ] A backup has run once and you copied `.env` somewhere safe.
 - [ ] UptimeRobot monitor created.
-- [ ] A short **privacy notice** for your testers (what is stored: account, posts, stories, encrypted chat, uploaded media; where: your server). Have it checked if you are in the EU/UK (GDPR).
+- [ ] A short **privacy notice** for your testers (what is stored: account, posts, stories, encrypted chat, uploaded photos; where: your server). Have it checked if you are in the EU/UK (GDPR).
 - [ ] `NEWS_API_KEY` set in `.env` (free key from finnhub.io) so news is live.

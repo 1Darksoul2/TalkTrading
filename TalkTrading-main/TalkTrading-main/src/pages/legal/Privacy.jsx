@@ -27,7 +27,7 @@ export default function Privacy() {
       <List items={[
         'The server that hosts TalkTrading and its database, run by the TalkTrading team.',
         'Market data and news providers (such as TradingView and Finnhub). Prices and news are fetched by our server; the chart on a stock page is loaded from TradingView directly by your browser.',
-        'An email provider, only to send password reset emails.',
+        'The video host the team uses for reels: your browser loads reel videos from it directly.',
       ]} />
 
       <H>How long</H>

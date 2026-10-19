@@ -73,13 +73,6 @@ def main():
         f.write(
             "\n# News: put your Finnhub key in NEWS_API_KEY above (free at https://finnhub.io).\n"
             "# Prices and charts come from TradingView and need no key.\n"
-            "\n# Password-reset emails. Fill these in, then run: docker compose up -d\n"
-            "# (until then, reset links are written to: docker compose logs post)\n"
-            "SMTP_HOST=\n"
-            "SMTP_PORT=587\n"
-            "SMTP_USER=\n"
-            "SMTP_PASSWORD=\n"
-            f"SMTP_FROM=TalkTrading <no-reply@{(args.domain or 'talktrading.app').strip().lower().removeprefix('https://').removeprefix('http://').rstrip('/')}>\n"
         )
     print(f"Wrote {os.path.normpath(ENV_PATH)} for {public}")
     if not news_key:

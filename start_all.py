@@ -506,7 +506,10 @@ def main():
             tag="POST",
             port=8004,
             cwd=os.path.join(ROOT_DIR, "backend", "post-service-feature-post-module"),
-            command=[python_bin, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8004"],
+            # Two workers, each replaced after 800 requests: the service's logging middleware fails after
+            # about 1,000 requests in one process (RecursionError), and its code is not changed here.
+            command=[python_bin, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8004",
+                     "--workers", "2", "--limit-max-requests", "800"],
             health_url="http://127.0.0.1:8004/health",
             docs_url="http://127.0.0.1:8004/docs",
             color=BLUE,

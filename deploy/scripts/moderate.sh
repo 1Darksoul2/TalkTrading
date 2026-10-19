@@ -11,6 +11,7 @@
 #   end-story <id>       end a story now (it leaves the tray; the owner keeps it in their archive)
 #   close-story-reports <story id>   mark a story's reports as handled
 #   user <username>      who an account is (email, sign-up date) for follow-up
+#   set-password <email> give an account a new password (for testers who forgot theirs)
 #   stats                accounts and activity, in total and in the last 24 hours
 set -eu
 cd "$(dirname "$0")/.."
@@ -63,5 +64,13 @@ case "$CMD" in
       label=${row%%:*}; rest=${row#*:}; set -- $(n "${rest%%:*}" "${rest#*:}")
       printf '%-22s %8s %8s\n' "$label" "$1" "$2"
     done ;;
-  *) sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//' ;;
+  set-password)
+    need_id "${2:-}"
+    printf 'New password for %s (8+ characters, typing is hidden): ' "$2"; stty -echo 2>/dev/null || true; read -r pw; stty echo 2>/dev/null || true; echo
+    [ ${#pw} -ge 8 ] || { echo "Too short; nothing changed."; exit 1; }
+    # Hash with the Post Service's own password function, inside its container; only the hash reaches the database.
+    hash=$(printf '%s' "$pw" | docker compose exec -T post python -c "import sys; from app.core.security import hash_password; print(hash_password(sys.stdin.read()))")
+    email=$(echo "$2" | tr -cd 'A-Za-z0-9@._+-')
+    sql post "UPDATE users SET hashed_password = '$hash' WHERE lower(email) = lower('$email')" ;;
+  *) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//' ;;
 esac
