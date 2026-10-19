@@ -10,13 +10,13 @@ Part 1 is for the team. Part 2 is the page to send to testers.
 
 1. **Deploy** with [DEPLOY.md](DEPLOY.md) (server, domain, `make_env.py`, `docker compose up -d --build`).
 2. **Set up email** so "Forgot password" works: add `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` to `deploy/.env`, then `docker compose up -d`.
-3. **Add the news key**: `NEWS_API_KEY` in `deploy/.env` (free at finnhub.io).
+3. **Add the news key**: `NEWS_API_KEY` in `deploy/.env` (free at finnhub.io), then `docker compose up -d`. TradingView needs no key.
 4. **Seed the starter content** (team account, welcome post, five starter communities):
    ```bash
    cd /opt/talktrading/deploy
    python3 scripts/seed_beta.py --url https://your-domain.com --email team@your-domain.com
    ```
-5. **Check everything is up**: open `https://your-domain.com/status` while signed in. Every row should be green, including "Live prices".
+5. **Check everything is up**: open `https://your-domain.com/status` while signed in. Every row should be green, including "News articles" (your Finnhub key works) and "Live prices" (TradingView, no key needed).
 6. **Turn on backups and monitoring** (DEPLOY.md sections 6 and 7) and run one backup by hand: `sh scripts/backup.sh`.
 7. **Do one full walk-through yourself**, on a laptop and on a phone, using the tester checklist in Part 2.
 

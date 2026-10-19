@@ -38,6 +38,29 @@ if os.name == "nt":
 # Root workspace directory
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+
+def load_root_env() -> List[str]:
+    """Read KEY=VALUE lines from the project's .env (see .env.example) into this process's environment.
+
+    Every service is started with this environment, so keys set once here (news API key, mail
+    server, login secret) reach all of them. Values already set in the real environment win.
+    """
+    path = os.path.join(ROOT_DIR, ".env")
+    loaded: List[str] = []
+    if not os.path.isfile(path):
+        return loaded
+    with open(path, encoding="utf-8") as f:
+        for raw in f:
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key, value = key.strip(), value.strip().strip('"').strip("'")
+            if key and value and key not in os.environ:
+                os.environ[key] = value
+                loaded.append(key)
+    return loaded
+
 # ANSI color codes
 CYAN = "\033[96m"
 GREEN = "\033[92m"
@@ -403,6 +426,12 @@ def main():
     parser.add_argument("--check-only", action="store_true", help="Verify ports and dependencies without starting services")
     parser.add_argument("--kill-existing", action="store_true", help="Automatically kill any existing processes on required ports before starting")
     args = parser.parse_args()
+
+    loaded = load_root_env()
+    if loaded:
+        print(f"{GRAY}[CONFIG] Settings from .env : {', '.join(sorted(loaded))}{RESET}")
+    if not os.environ.get("NEWS_API_KEY"):
+        print(f"{YELLOW}[NOTICE] NEWS_API_KEY is not set: the News page stays empty. Add it to .env (see .env.example).{RESET}")
 
     python_bin = find_python_executable()
     npm_bin = find_npm_executable()

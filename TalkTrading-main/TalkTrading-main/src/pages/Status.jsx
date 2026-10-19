@@ -15,6 +15,7 @@ const SERVICES = [
   { name: 'Communities', url: `${COMMUNITY_SERVICE_URL}/api/v1/health` },
   { name: 'Explore', url: `${EXPLORE_SERVICE_URL}/actuator/health/liveness` },
   { name: 'News', url: `${NEWS_SERVICE_URL}/health` },
+  { name: 'News articles', url: `${NEWS_SERVICE_URL}/news?limit=1`, check: data => data.total > 0, empty: 'none yet: is NEWS_API_KEY set?' },
   { name: 'Markets', url: `${CHART_SERVICE_URL}/health` },
   { name: 'Live prices', url: `${CHART_SERVICE_URL}/quotes/batch?symbols=AAPL,BTC`, check: data => data.quotes?.some(q => q.price != null) },
 ]
@@ -25,7 +26,7 @@ async function probe(service) {
     const response = await fetch(service.url, { headers: { Authorization: `Bearer ${getToken()}` }, cache: 'no-store' })
     const ms = Math.round(performance.now() - started)
     if (!response.ok) return { ok: false, detail: `HTTP ${response.status}`, ms }
-    if (service.check && !service.check(await response.json())) return { ok: false, detail: 'no data from provider', ms }
+    if (service.check && !service.check(await response.json())) return { ok: false, detail: service.empty || 'no data from provider', ms }
     return { ok: true, ms }
   } catch (err) {
     return { ok: false, detail: err.message, ms: Math.round(performance.now() - started) }

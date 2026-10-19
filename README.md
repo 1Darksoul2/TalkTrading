@@ -15,6 +15,18 @@ cd TalkTrading-main\TalkTrading-main && npm install
 
 (On macOS/Linux use `for s in news-service story-service chart-service E2E-main post-service-feature-post-module Reels-main; do pip install -r backend/$s/requirements.txt; done`.)
 
+## 🔑 API keys
+
+| Service | Key needed? | Where it goes |
+|---|---|---|
+| **Finnhub** (news) | Yes, free at [finnhub.io](https://finnhub.io) | `NEWS_API_KEY` |
+| **TradingView** (prices, charts) | **No.** Prices come from TradingView's public feed and the chart is its free widget | — |
+| **Email** (password reset) | Optional: any SMTP provider | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` |
+
+- **On your computer:** copy `.env.example` to `.env` in the project root and fill it in. `start_all.py` passes it to every service.
+- **On the server:** the same names go in `deploy/.env` (created by `deploy/scripts/make_env.py`); then `docker compose up -d`.
+- To check: open **Service status** in the app (account menu). "News articles" and "Live prices" turn green once data arrives.
+
 ## 🚀 One-Command Quick Start
 
 Start all 8 backend microservices and the frontend in a single command:
@@ -63,7 +75,7 @@ The web app lives in `TalkTrading-main/TalkTrading-main/`. Every page talks to t
 
 - **Accounts:** sign up, sign in with email *or* username ("Remember me" keeps you signed in after the browser closes), and reset a forgotten password. Reset links are emailed when `SMTP_HOST` is set for the Post Service; otherwise the link is printed in the Post Service log.
 - **Community and Explore** are Java/Spring Boot services. `start_all.py` runs them through Maven and needs **JDK 23+** and Maven; without them it skips those two and says so.
-- **News** needs a free `NEWS_API_KEY` (e.g. finnhub.io) in `backend/news-service/.env` to show live headlines; **Charts** read prices from TradingView's public feed and say so on the page when it cannot be reached.
+- **News** needs a free Finnhub key (see API keys above); **prices and charts** come from TradingView and need no key. When either source is unreachable the page says so instead of showing made-up data.
 
 ---
 
