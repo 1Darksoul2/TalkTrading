@@ -310,7 +310,7 @@ Everything runs from `/opt/talktrading/deploy` on the server. The full routine i
 | Chart | 12 | Python 3.11 |
 | Community | 110 | Java 23 |
 | Explore | 56 | Java 23 |
-| **Total** | **492** (490 run in the blocking CI jobs) | |
+| **Total** | **488** (486 run in the blocking CI jobs) | |
 
 The chat service's two WebSocket tests hang inside the test client (the WebSocket itself works, as the browser tests show). CI runs them in a separate job that cannot block a merge.
 
