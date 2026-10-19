@@ -213,7 +213,7 @@ export default function Chats() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1">
                       <h4 className="font-semibold text-xs text-on-surface truncate">{name}</h4>
-                      <span className="text-[10px] text-on-surface-muted/60 flex-shrink-0">
+                      <span className="text-[10px] text-on-surface-muted flex-shrink-0">
                         {new Date(c.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                       </span>
                     </div>
@@ -518,7 +518,7 @@ function ChatView({ conversationId }) {
               </div>
 
               {/* Timestamp & Status footer */}
-              <div className={`flex items-center gap-1 text-[9px] text-on-surface-muted/60 mt-1 px-1 ${isMe ? 'mr-1' : 'ml-9'}`}>
+              <div className={`flex items-center gap-1 text-[9px] text-on-surface-muted mt-1 px-1 ${isMe ? 'mr-1' : 'ml-9'}`}>
                 <span>{msg.timestamp}</span>
                 {msg.id?.startsWith('local-') && <span>· Sending</span>}
                 <span className="material-symbols-outlined text-[10px] text-bullish ml-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>

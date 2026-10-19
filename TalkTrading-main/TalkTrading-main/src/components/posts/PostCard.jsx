@@ -60,7 +60,7 @@ export default function PostCard({ post: initial, onChange, onDeleted, onOpenCom
     <Card className="overflow-hidden border border-white/10">
       <div className="p-3 flex justify-between items-center">
         <div className="flex items-center gap-2.5 min-w-0">
-          <Link to={`/profile/${post.username}`} className="shrink-0">
+          <Link to={`/profile/${post.username}`} className="shrink-0" aria-label={`${post.username}'s profile`}>
             <img src={post.userAvatar} alt="" className="w-10 h-10 rounded-full object-cover border border-white/10" />
           </Link>
           <div className="min-w-0">

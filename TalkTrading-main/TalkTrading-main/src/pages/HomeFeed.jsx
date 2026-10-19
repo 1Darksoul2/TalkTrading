@@ -123,8 +123,8 @@ export default function HomeFeed() {
         <TrendingTickers />
         <p className="px-1 text-[11px] leading-relaxed text-on-surface-muted">
           Posts are opinions, not financial advice.{' '}
-          <Link to="/terms" className="hover:underline">Terms</Link> · <Link to="/privacy" className="hover:underline">Privacy</Link> ·{' '}
-          <Link to="/guidelines" className="hover:underline">Guidelines</Link> · <Link to="/feedback" className="hover:underline">Feedback</Link>
+          <Link to="/terms" className="underline">Terms</Link> · <Link to="/privacy" className="underline">Privacy</Link> ·{' '}
+          <Link to="/guidelines" className="underline">Guidelines</Link> · <Link to="/feedback" className="underline">Feedback</Link>
         </p>
       </aside>
 

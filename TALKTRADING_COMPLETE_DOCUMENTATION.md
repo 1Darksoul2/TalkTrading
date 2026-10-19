@@ -149,7 +149,7 @@ Notes per service:
 - **Reel** stores uploaded videos and poster frames in `MEDIA_DIR`, checks the file type from its bytes, and keeps a moderation audit log. Moderation actions need `X-Service-API-Key`.
 - **E2EE** never sees private keys or plaintext; it stores public key bundles and ciphertext and delivers over WebSocket. See [§6](#6-identity-security-and-privacy).
 - **News** pulls from one provider (`NEWS_PROVIDER`, default Finnhub) with `NEWS_API_KEY`; without a key the feed is empty and the app says so.
-- **Chart** reads live quotes from TradingView's scanner (cached 60 s) and 7-day sparklines from Yahoo Finance (cached 15 min). When those are unreachable, the Markets page says "Live prices are unavailable" instead of showing numbers.
+- **Chart** reads live quotes from TradingView's public scanner (cached 60 s; no account or key needed) and 7-day sparklines from Yahoo Finance (cached 15 min). When those are unreachable, the Markets page says "Live prices are unavailable" instead of showing numbers.
 - **Community** and **Explore** are Spring Boot services. In production they use PostgreSQL; locally `start_all.py` runs them with an in-memory H2 database (data resets on restart).
 
 ---
@@ -245,7 +245,7 @@ Then open http://localhost:5173 and sign up. Options: `--backend-only`, `--check
 | 8083 | Explore | in memory |
 | 5173 | Web app | — |
 
-For live news locally put `NEWS_API_KEY=...` in `backend/news-service/.env`. Password-reset links appear in the Post Service's console output.
+**Keys and settings:** copy `.env.example` to `.env` in the project root and fill it in; `start_all.py` passes it to every service. Only Finnhub (news) needs a key; TradingView (prices and charts) needs none. Without SMTP settings, password-reset links appear in the Post Service's console output. The in-app **Service status** page shows whether news articles and live prices are arriving.
 
 **Trying the production setup locally:** `cd deploy && python scripts/make_env.py --local && docker compose up -d --build`, then open http://localhost:8088.
 
@@ -312,6 +312,7 @@ The chat service's two WebSocket tests hang inside the test client (the WebSocke
 - `flows.js` — two new users: sign-up, post with photo and ticker, story, reel upload, follow/like/comment on a reel, report a reel, feed, notifications, create and join a community, people search, profile, encrypted chat both ways, username login with "Remember me", wrong password, password reset (17 steps).
 - `pages.js` — every page opens without a crash, failed call or console error.
 - `mobile.js` — every page fits an iPhone-size screen; Market and Create are reachable.
+- `a11y.js` — every page in the dark and light themes has no serious or critical accessibility problem (axe-core: contrast, names of buttons and links, links not told apart by colour alone).
 
 **Verified on 18–19 October 2026:** the full Docker stack (PostgreSQL, Redis, gateway with HTTPS config, production web build) built and ran; all three browser suites passed against it; a backup was taken, data changed, the backup restored, and the flows passed again on the restored data; moderation hide/restore was checked through the public API. In that environment the system packages for three images and Maven Central were rate-limited or blocked, so those images were built from the same code with equivalent stand-in Dockerfiles; the real Dockerfiles are unchanged and build normally on a server with internet access. CI builds and tests them on GitHub.
 
@@ -350,6 +351,12 @@ The chat service's two WebSocket tests hang inside the test client (the WebSocke
 ---
 
 ## 14. Change log
+
+**19 October 2026 — polish**
+- One `.env` for keys: `.env.example` at the project root, read by `start_all.py` and passed to every service; `make_env.py` writes labelled places for the Finnhub key and email settings in `deploy/.env`. TradingView needs no key.
+- Service status page shows whether news articles are arriving (to confirm the Finnhub key).
+- Accessibility and themes: light theme fixed (some cards stayed dark navy with dark text; gold, green, red and grey text now meet WCAG AA contrast on white), warnings use a theme-aware colour, settings switches are named by their row, profile links and follower counts are announced correctly, links in text are underlined. Automated scan: no serious or critical issues on any page in dark or light; no console warnings in any theme.
+- New browser test `tests/e2e/a11y.js`.
 
 **19 October 2026 — beta readiness** (core service code untouched in this round)
 - Web app: Terms, Privacy and Guidelines pages; feedback page; service status page; 404 page; reel report and delete; Market and Create reachable on phones (the floating Market button covered content); scrollable tab bars; pages load on demand (first download 747 → 443 KB); web app manifest and icon.
@@ -691,5 +698,5 @@ Created by `scripts/make_env.py`; edit, then run `docker compose up -d` (add `--
 | `JWT_SECRET` | Signs every login; changing it logs everyone out |
 | `LOGIN_LIFETIME_MINUTES` | How long a login lasts (default 10080 = 7 days) |
 | `REEL_SERVICE_API_KEY` | Lets `moderate.sh` moderate reels |
-| `NEWS_PROVIDER`, `NEWS_API_KEY` | News source (default Finnhub) and its key |
+| `NEWS_PROVIDER`, `NEWS_API_KEY` | News source (default Finnhub) and its key. TradingView needs no key |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | Outgoing mail for password reset (optional; without it links go to the log) |

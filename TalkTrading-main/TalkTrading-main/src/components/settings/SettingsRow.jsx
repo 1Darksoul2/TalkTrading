@@ -1,5 +1,11 @@
+import { cloneElement, isValidElement, useId } from 'react'
+import Toggle from './Toggle'
+
 export default function SettingsRow({ icon, label, description, trailing, onClick, danger = false }) {
   const interactive = typeof onClick === 'function'
+  const labelId = useId()
+  // A switch in the row is named by the row's label, so screen readers say what it turns on.
+  const control = isValidElement(trailing) && trailing.type === Toggle ? cloneElement(trailing, { labelledBy: labelId }) : trailing
   return (
     <div
       onClick={onClick}
@@ -17,12 +23,12 @@ export default function SettingsRow({ icon, label, description, trailing, onClic
         </span>
       )}
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium truncate ${danger ? 'text-error' : 'text-on-surface'}`}>{label}</p>
+        <p id={labelId} className={`text-sm font-medium truncate ${danger ? 'text-error' : 'text-on-surface'}`}>{label}</p>
         {description && (
           <p className="text-xs text-on-surface-muted mt-0.5 line-clamp-2">{description}</p>
         )}
       </div>
-      {trailing}
+      {control}
     </div>
   )
 }

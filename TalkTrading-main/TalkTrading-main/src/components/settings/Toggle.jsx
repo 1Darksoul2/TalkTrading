@@ -1,9 +1,11 @@
-export default function Toggle({ checked, onChange, disabled = false }) {
+export default function Toggle({ checked, onChange, disabled = false, labelledBy, label }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      aria-labelledby={labelledBy}
+      aria-label={labelledBy ? undefined : label}
       disabled={disabled}
       onClick={() => !disabled && onChange(!checked)}
       className={`relative w-11 h-6 rounded-full flex-shrink-0 transition-colors duration-200 ${

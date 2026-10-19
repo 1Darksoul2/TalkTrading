@@ -155,7 +155,7 @@ export default function StockChart() {
               <h1 className="font-mono font-bold text-lg text-on-surface">{symbol}</h1>
               <span className="text-sm text-on-surface-muted">{displayName}</span>
               {symbolMeta?.exchange && (
-                <span className="text-[10px] font-mono text-on-surface-muted/50 bg-white/[0.06] px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-mono text-on-surface-muted bg-white/[0.06] px-1.5 py-0.5 rounded">
                   {symbolMeta.exchange}
                 </span>
               )}
@@ -177,7 +177,7 @@ export default function StockChart() {
                     ({changePct >= 0 ? '+' : ''}{changePct?.toFixed(2)}%)
                   </span>
                 )}
-                {quoteError && <span className="text-xs text-amber-500">{quoteError}</span>}
+                {quoteError && <span className="text-xs text-warning">{quoteError}</span>}
                 {quote?.price != null && !quoteError && (
                   <span className="flex items-center gap-1 text-[10px] font-mono text-bullish/80 uppercase tracking-widest">
                     <span className="w-1.5 h-1.5 rounded-full bg-bullish animate-pulse inline-block" />

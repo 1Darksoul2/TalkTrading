@@ -706,7 +706,7 @@ export default function Reels() {
         />
       )}
 
-      <p className="hidden lg:block fixed bottom-3 right-6 text-[11px] text-on-surface-muted/70">Opinions, not financial advice.</p>
+      <p className="hidden lg:block fixed bottom-3 right-6 text-[11px] text-on-surface-muted">Opinions, not financial advice.</p>
 
       {/* Toast */}
       {toast && (

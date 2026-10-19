@@ -247,11 +247,11 @@ export default function UserProfile() {
             <span className="font-mono font-bold text-on-surface">{formatNum(profile.posts_count ?? posts.length)}</span>
             <span className="text-[10px] uppercase tracking-wider font-semibold text-on-surface-muted">Posts</span>
           </div>
-          <button onClick={() => setListKind('followers')} className="flex flex-col items-center hover:opacity-80" aria-label={`${profile.followers_count} followers`}>
+          <button onClick={() => setListKind('followers')} className="flex flex-col items-center hover:opacity-80">
             <span className="font-mono font-bold text-on-surface">{formatNum(profile.followers_count)}</span>
             <span className="text-[10px] uppercase tracking-wider font-semibold text-on-surface-muted">Followers</span>
           </button>
-          <button onClick={() => setListKind('following')} className="flex flex-col items-center hover:opacity-80" aria-label={`${profile.following_count} following`}>
+          <button onClick={() => setListKind('following')} className="flex flex-col items-center hover:opacity-80">
             <span className="font-mono font-bold text-on-surface">{formatNum(profile.following_count)}</span>
             <span className="text-[10px] uppercase tracking-wider font-semibold text-on-surface-muted">Following</span>
           </button>

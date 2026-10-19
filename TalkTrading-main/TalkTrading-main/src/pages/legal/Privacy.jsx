@@ -44,7 +44,7 @@ export default function Privacy() {
         'Ask for a copy of all your data, or for your whole account to be deleted, by writing to us. We answer within 30 days.',
       ]} />
       <p>
-        <Link className="text-primary hover:underline" to="/settings/your-information">Open “Your information”</Link>
+        <Link className="text-primary underline" to="/settings/your-information">Open “Your information”</Link>
       </p>
 
       <H>Contact</H>

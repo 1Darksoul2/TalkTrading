@@ -444,7 +444,7 @@ export default function Create() {
                   ? <video src={media[0].url} className="w-full h-full object-cover" autoPlay muted loop playsInline />
                   : <img src={media[0].url} alt="" className="w-full h-full object-cover" />
               ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/40">
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/70">
                   <span className="material-symbols-outlined text-[40px]">{type === 'reel' ? 'smart_display' : 'auto_stories'}</span>
                   <span className="text-xs">Your {type} will appear here</span>
                 </div>

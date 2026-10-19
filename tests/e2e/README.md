@@ -8,6 +8,7 @@ They create real accounts and content, so point them at a local or staging stack
 | `flows.js` | Two users: sign up, post with photo and ticker, story, reel upload, follow, like, comment, report, feed, notifications, community create/join, explore search, profile, encrypted chat both ways, username login with "Remember me", wrong password, password reset |
 | `pages.js` | Every page opens without a crash, failed API call or console error (desktop size) |
 | `mobile.js` | Every page fits an iPhone-size screen, and Market/Create are reachable |
+| `a11y.js` | Every page in dark and light themes has no serious or critical accessibility problem (axe-core) |
 
 ## Run
 

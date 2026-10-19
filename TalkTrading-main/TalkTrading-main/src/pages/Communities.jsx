@@ -114,7 +114,7 @@ export default function Communities() {
                           </div>
                         </div>
                       </div>
-                      <p className="text-sm text-on-surface-muted/80 line-clamp-2 mb-4">{comm.description || 'No description yet.'}</p>
+                      <p className="text-sm text-on-surface-muted line-clamp-2 mb-4">{comm.description || 'No description yet.'}</p>
                     </div>
                     <div className="flex justify-between items-end">
                       <span className="text-[10px] uppercase tracking-wider font-semibold text-primary">{comm.currentUserRole}</span>
@@ -149,7 +149,7 @@ export default function Communities() {
                           </div>
                         </div>
                       </div>
-                      <p className="text-sm text-on-surface-muted/80 line-clamp-2 mb-4">{comm.description || 'No description yet.'}</p>
+                      <p className="text-sm text-on-surface-muted line-clamp-2 mb-4">{comm.description || 'No description yet.'}</p>
                     </div>
                     <div className="flex justify-end">
                       <Button variant="secondary" size="sm" onClick={() => toggleJoin(comm)}>Join</Button>

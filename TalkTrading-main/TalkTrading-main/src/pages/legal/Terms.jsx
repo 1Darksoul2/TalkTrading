@@ -31,7 +31,7 @@ export default function Terms() {
       <p>
         You keep ownership of what you post. You give TalkTrading permission to store it and show it to the people your
         settings allow, for as long as it stays on the service. Only post what you have the right to share. Content must
-        follow the <Link className="text-primary hover:underline" to="/guidelines">Community Guidelines</Link>; we may hide
+        follow the <Link className="text-primary underline" to="/guidelines">Community Guidelines</Link>; we may hide
         or remove content and suspend accounts that break them.
       </p>
 

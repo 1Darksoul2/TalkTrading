@@ -217,7 +217,7 @@ export default function MarketCharts() {
         {lastUpdated && (
           <div className="shrink-0 flex flex-col items-end">
             <LiveBadge />
-            <span className="text-[9px] text-on-surface-muted/50 font-mono mt-0.5">
+            <span className="text-[9px] text-on-surface-muted font-mono mt-0.5">
               {lastUpdated.toLocaleTimeString()}
             </span>
           </div>
@@ -225,7 +225,7 @@ export default function MarketCharts() {
       </div>
 
       {quotesError && (
-        <div role="status" className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-sm text-amber-500">
+        <div role="status" className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-warning/30 bg-warning/10 text-sm text-warning">
           <span className="material-symbols-outlined text-[18px]">cloud_off</span>
           {quotesError}
         </div>
@@ -260,7 +260,7 @@ export default function MarketCharts() {
             </span>
             Your Watchlist
             {!loading && (
-              <span className="text-on-surface-muted/50">({watchlistSymbols.length})</span>
+              <span className="text-on-surface-muted">({watchlistSymbols.length})</span>
             )}
           </h2>
           <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
