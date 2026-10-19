@@ -3,7 +3,10 @@ import { useNavigate, useLocation, Link } from 'react-router-dom'
 import AuthLayout, { authColors } from '../components/auth/AuthLayout'
 import AuthField from '../components/auth/AuthField'
 import SubmitButton from '../components/auth/SubmitButton'
+import FormError from '../components/auth/FormError'
 import { useAuth } from '../context/AuthContext'
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function Login() {
   const navigate = useNavigate()
@@ -16,12 +19,13 @@ export default function Login() {
   const [remember, setRemember]     = useState(false)
   const [errors, setErrors]         = useState({})
   const [submitting, setSubmitting] = useState(false)
+  const [formError, setFormError]   = useState('')
 
   function validate() {
     const e = {}
-    if (!identifier.trim()) e.identifier = 'Email or username is required.'
+    if (!identifier.trim()) e.identifier = 'Email is required.'
+    else if (!EMAIL_RE.test(identifier.trim())) e.identifier = 'Enter the email you signed up with.'
     if (!password)           e.password   = 'Password is required.'
-    else if (password.length < 6) e.password = 'Password must be at least 6 characters.'
     return e
   }
 
@@ -30,9 +34,15 @@ export default function Login() {
     const e = validate()
     if (Object.keys(e).length) { setErrors(e); return }
     setErrors({})
+    setFormError('')
     setSubmitting(true)
-    await login({ identifier: identifier.trim(), remember })
-    navigate(redirectTo, { replace: true })
+    try {
+      await login({ email: identifier.trim(), password, remember })
+      navigate(redirectTo, { replace: true })
+    } catch (err) {
+      setFormError(err.message)
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -45,14 +55,20 @@ export default function Login() {
           <Link to="/signup" className="font-medium transition-opacity hover:opacity-80" style={{ color: authColors.gold }}>
             Create an account
           </Link>
+          <span className="block mt-4 text-xs">
+            <Link to="/terms" className="hover:underline">Terms</Link>{' · '}
+            <Link to="/privacy" className="hover:underline">Privacy</Link>{' · '}
+            <Link to="/guidelines" className="hover:underline">Guidelines</Link>
+          </span>
         </p>
       }
     >
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
         <AuthField
           id="tt-identifier"
-          label="Email or username"
-          autoComplete="username"
+          label="Email"
+          type="email"
+          autoComplete="email"
           placeholder="you@example.com"
           value={identifier}
           onChange={v => { setIdentifier(v); setErrors(prev => ({ ...prev, identifier: undefined })) }}
@@ -86,6 +102,7 @@ export default function Login() {
           <span className="text-sm" style={{ color: authColors.muted }}>Remember me</span>
         </label>
 
+        <FormError message={formError} />
         <SubmitButton submitting={submitting} label="Sign in" busyLabel="Signing in…" />
       </form>
     </AuthLayout>

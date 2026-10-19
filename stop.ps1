@@ -1,6 +1,6 @@
 # =========================================================================
 # TalkTrading - Unified Stop Script (PowerShell)
-# Stops any running microservices on ports 8000-8004 and 5173
+# Stops any running microservices on ports 8000-8005, 8080, 8083 and 5173
 # =========================================================================
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path

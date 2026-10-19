@@ -1,66 +1,42 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import AuthLayout, { authColors } from '../components/auth/AuthLayout'
-import AuthField from '../components/auth/AuthField'
-import SubmitButton from '../components/auth/SubmitButton'
-import { useAuth } from '../context/AuthContext'
+import { SUPPORT_EMAIL } from '../config'
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
+// Password reset by email is not offered by the account service yet; the team resets it by hand.
 export default function ForgotPassword() {
-  const { requestPasswordReset } = useAuth()
-  const [email, setEmail] = useState('')
-  const [error, setError] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [sent, setSent] = useState(false)
-
-  async function handleSubmit(evt) {
-    evt.preventDefault()
-    if (!EMAIL_RE.test(email.trim())) { setError('Enter the email you signed up with.'); return }
-    setError('')
-    setSubmitting(true)
-    await requestPasswordReset(email.trim())
-    setSubmitting(false)
-    setSent(true)
-  }
-
-  const backToLogin = (
-    <p className="text-center mt-5 text-sm" style={{ color: authColors.muted }}>
-      <Link to="/login" className="font-medium transition-opacity hover:opacity-80" style={{ color: authColors.gold }}>
-        ← Back to sign in
-      </Link>
-    </p>
-  )
-
-  if (sent) {
-    return (
-      <AuthLayout title="Check your email" footer={backToLogin}>
-        <p className="text-sm leading-relaxed" style={{ color: authColors.muted }}>
-          If an account exists for <span style={{ color: authColors.text }}>{email.trim()}</span>, we've sent a link
-          to reset your password. It expires in 30 minutes.
-        </p>
-        <button
-          onClick={() => setSent(false)}
-          className="mt-6 text-xs transition-opacity hover:opacity-80"
-          style={{ color: authColors.gold }}
-        >
-          Didn't get it? Try again
-        </button>
-      </AuthLayout>
-    )
-  }
-
+  const subject = encodeURIComponent('TalkTrading: I forgot my password')
+  const body = encodeURIComponent('Hi, please reset the password for the TalkTrading account that uses this email address. My username is: ')
   return (
     <AuthLayout
-      title="Reset your password"
-      subtitle="Enter your email and we'll send you a reset link."
-      footer={backToLogin}
+      title="Forgot your password?"
+      footer={
+        <p className="text-center mt-5 text-sm" style={{ color: authColors.muted }}>
+          <Link to="/login" className="font-medium underline" style={{ color: authColors.gold }}>
+            ← Back to sign in
+          </Link>
+        </p>
+      }
     >
-      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
-        <AuthField id="tt-reset-email" label="Email" type="email" autoComplete="email" placeholder="you@example.com"
-          value={email} onChange={v => { setEmail(v); setError('') }} error={error} />
-        <SubmitButton submitting={submitting} label="Send reset link" busyLabel="Sending…" />
-      </form>
+      <div className="flex flex-col gap-4 text-sm leading-relaxed" style={{ color: authColors.muted }}>
+        <p>During the beta, passwords are reset by the TalkTrading team.</p>
+        {SUPPORT_EMAIL ? (
+          <>
+            <p>
+              Write to <span style={{ color: authColors.text }}>{SUPPORT_EMAIL}</span> from the email address you signed up
+              with. The team will set a temporary password and send it to you; change it after signing in.
+            </p>
+            <a
+              href={`mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`}
+              className="w-full rounded-xl py-3 text-sm font-semibold text-center"
+              style={{ background: `linear-gradient(135deg, ${authColors.gold}, ${authColors.goldDeep})`, color: '#3C2F00' }}
+            >
+              Email the team
+            </a>
+          </>
+        ) : (
+          <p>Ask the person who invited you to the beta; they will set a temporary password for you.</p>
+        )}
+      </div>
     </AuthLayout>
   )
 }

@@ -4,19 +4,21 @@ import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import TabBar from '../components/ui/TabBar'
 import { useAuth } from '../context/AuthContext'
-import mockTickers from '../data/mockTickers'
+import { postService } from '../services/postService'
+import { storyService } from '../services/storyService'
+import { getSymbols } from '../services/chartService'
+import { useLiveQuotes } from '../hooks/useLiveQuotes'
+import { DEFAULT_AVATAR } from '../utils/defaultAvatar'
 
 const TYPES = [
   { id: 'post', label: 'Post' },
   { id: 'story', label: 'Story' },
-  { id: 'reel', label: 'Reel' },
 ]
 
 // Per-type rules: what media is accepted, how many files, and where to go after sharing
 const RULES = {
   post: { accept: 'image/*', maxFiles: 4, maxText: 500, mediaRequired: false, redirect: '/', hint: 'Up to 4 images' },
   story: { accept: 'image/*,video/*', maxFiles: 1, maxText: 120, mediaRequired: true, redirect: '/', hint: 'One photo or video, 9:16 works best' },
-  reel: { accept: 'video/*', maxFiles: 1, maxText: 300, mediaRequired: true, redirect: '/reels', hint: 'One vertical video, up to 60s' },
 }
 
 const SENTIMENTS = [
@@ -26,8 +28,6 @@ const SENTIMENTS = [
 ]
 
 const MAX_TICKERS = 3
-const fakeDelay = () => new Promise(resolve => setTimeout(resolve, 700))
-
 export default function Create() {
   const [searchParams] = useSearchParams()
   const initialType = TYPES.some(t => t.id === searchParams.get('type')) ? searchParams.get('type') : 'post'
@@ -39,9 +39,16 @@ export default function Create() {
   const [sentiment, setSentiment] = useState(null)
   const [sharing, setSharing] = useState(false)
   const [toast, setToast] = useState('')
+  const [symbols, setSymbols] = useState([])
+  const [profile, setProfile] = useState(null)
   const fileInput = useRef(null)
   const navigate = useNavigate()
   const { user } = useAuth()
+
+  useEffect(() => {
+    getSymbols().then(data => setSymbols(data.items), err => setToast(`Tickers unavailable: ${err.message}`))
+    postService.getMyProfile().then(setProfile, err => console.error('Could not load your profile:', err))
+  }, [])
 
   const rules = RULES[type]
 
@@ -52,7 +59,7 @@ export default function Create() {
 
   useEffect(() => {
     if (!toast) return
-    const id = setTimeout(() => setToast(''), 1800)
+    const id = setTimeout(() => setToast(''), 4000)
     return () => clearTimeout(id)
   }, [toast])
 
@@ -74,10 +81,11 @@ export default function Create() {
     const accepted = files.filter(f =>
       rules.accept.split(',').some(a => f.type.startsWith(a.replace('*', '')))
     )
-    if (accepted.length < files.length) setToast(type === 'reel' ? 'Reels need a video file' : 'That file type isn\'t supported')
+    if (accepted.length < files.length) setToast('That file type isn\'t supported')
     if (!accepted.length) return
 
     const next = accepted.map(f => ({
+      file: f,
       url: URL.createObjectURL(f),
       kind: f.type.startsWith('video') ? 'video' : 'image',
       name: f.name,
@@ -102,7 +110,7 @@ export default function Create() {
   }
 
   const tickerMatches = tickerQuery.trim()
-    ? mockTickers
+    ? symbols
         .filter(t => !tickers.includes(t.symbol))
         .filter(t =>
           t.symbol.toLowerCase().includes(tickerQuery.trim().toLowerCase()) ||
@@ -110,6 +118,7 @@ export default function Create() {
         )
         .slice(0, 5)
     : []
+  const matchQuotes = Object.fromEntries(useLiveQuotes(tickerMatches.map(t => t.symbol)).quotes.map(q => [q.symbol, q]))
 
   const addTicker = (symbol) => {
     if (tickers.length >= MAX_TICKERS) return
@@ -120,24 +129,41 @@ export default function Create() {
   const canShare = !sharing &&
     (rules.mediaRequired ? media.length > 0 : text.trim().length > 0 || media.length > 0)
 
+  const publishPost = () => {
+    // Tickers and sentiment travel in the caption, where the feed and hashtag pages pick them up.
+    const missing = tickers.filter(s => !text.toUpperCase().includes(`$${s}`))
+    const tag = sentiment ? ` #${SENTIMENTS.find(s => s.id === sentiment).label}` : ''
+    const caption = `${missing.map(s => `$${s}`).join(' ')}${missing.length ? ' ' : ''}${text.trim()}${tag}`.trim()
+    return postService.createPostWithMedia({ caption }, media.map(m => m.file))
+  }
+
+  const publishStory = async () => {
+    const uploaded = await storyService.uploadMedia(media[0].file).promise
+    return storyService.createStory({ media_id: uploaded.media_id, caption: text.trim() || null })
+  }
+
   const share = async () => {
     if (!canShare) return
     setSharing(true)
-    // No backend yet: pretend to upload, then send the user where the content lives
-    await fakeDelay()
-    setToast(`${TYPES.find(t => t.id === type).label} shared`)
-    setTimeout(() => navigate(rules.redirect), 900)
+    try {
+      await { post: publishPost, story: publishStory }[type]()
+      setToast(`${TYPES.find(t => t.id === type).label} shared`)
+      setTimeout(() => navigate(rules.redirect), 900)
+    } catch (err) {
+      setToast(err.message)
+      setSharing(false)
+    }
   }
 
-  const displayName = user?.displayName || 'You'
-  const username = user?.username || 'you'
+  const displayName = profile?.display_name || user?.username || ''
+  const username = user?.username || ''
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-6">
       <div className="flex items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-on-surface">Create</h1>
-          <p className="text-sm text-on-surface-muted">Share a post, a story or a reel with the community</p>
+          <p className="text-sm text-on-surface-muted">Share a post or a story with the community</p>
         </div>
         <Button variant="ghost" size="sm" icon="close" onClick={() => navigate(-1)}>Cancel</Button>
       </div>
@@ -153,7 +179,7 @@ export default function Create() {
           <section>
             <div className="flex items-baseline justify-between mb-2">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-on-surface-muted">
-                {type === 'reel' ? 'Video' : 'Media'}{rules.mediaRequired ? '' : ' (optional)'}
+                Media{rules.mediaRequired ? '' : ' (optional)'}
               </h2>
               <span className="text-xs text-on-surface-muted">{rules.hint}</span>
             </div>
@@ -185,7 +211,7 @@ export default function Create() {
                 className="w-full flex flex-col items-center justify-center gap-2 py-8 rounded-xl border border-dashed border-outline-variant text-on-surface-muted hover:border-primary/60 hover:text-on-surface transition-all"
               >
                 <span className="material-symbols-outlined text-[32px] text-primary">
-                  {type === 'reel' ? 'video_call' : type === 'story' ? 'add_a_photo' : 'add_photo_alternate'}
+                  {type === 'story' ? 'add_a_photo' : 'add_photo_alternate'}
                 </span>
                 <span className="text-sm font-semibold">
                   {media.length ? 'Add more' : 'Click to upload or drag a file here'}
@@ -260,9 +286,11 @@ export default function Create() {
                             <span className="font-mono font-semibold text-sm text-on-surface">{t.symbol}</span>
                             <span className="ml-2 text-xs text-on-surface-muted">{t.name}</span>
                           </span>
-                          <span className={`text-xs font-mono ${t.changePercent >= 0 ? 'text-bullish' : 'text-bearish'}`}>
-                            {t.changePercent >= 0 ? '+' : ''}{t.changePercent}%
-                          </span>
+                          {matchQuotes[t.symbol]?.change_percent != null && (
+                            <span className={`text-xs font-mono ${matchQuotes[t.symbol].change_percent >= 0 ? 'text-bullish' : 'text-bearish'}`}>
+                              {matchQuotes[t.symbol].change_percent >= 0 ? '+' : ''}{matchQuotes[t.symbol].change_percent.toFixed(2)}%
+                            </span>
+                          )}
                         </button>
                       ))}
                     </div>
@@ -306,9 +334,7 @@ export default function Create() {
           {type === 'post' ? (
             <Card className="p-4">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold uppercase">
-                  {displayName[0]}
-                </div>
+                <img src={profile ? postService.avatarFor(profile) : DEFAULT_AVATAR} alt="" className="w-10 h-10 rounded-full object-cover" />
                 <div>
                   <div className="text-sm font-semibold text-on-surface">{displayName}</div>
                   <div className="text-xs text-on-surface-muted">@{username} · now</div>
@@ -343,8 +369,8 @@ export default function Create() {
                   ? <video src={media[0].url} className="w-full h-full object-cover" autoPlay muted loop playsInline />
                   : <img src={media[0].url} alt="" className="w-full h-full object-cover" />
               ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/40">
-                  <span className="material-symbols-outlined text-[40px]">{type === 'reel' ? 'smart_display' : 'auto_stories'}</span>
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white/70">
+                  <span className="material-symbols-outlined text-[40px]">auto_stories</span>
                   <span className="text-xs">Your {type} will appear here</span>
                 </div>
               )}
@@ -356,7 +382,6 @@ export default function Create() {
               )}
               {(text || tickers.length > 0) && (
                 <div className="absolute bottom-0 inset-x-0 p-3 pt-10 bg-gradient-to-t from-black/80 to-transparent text-white">
-                  {type === 'reel' && <div className="text-xs font-semibold mb-1">@{username}</div>}
                   {text && <p className={`text-xs break-words ${type === 'story' ? 'text-center text-sm font-semibold' : 'line-clamp-3'}`}>{text}</p>}
                   {tickers.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-2">

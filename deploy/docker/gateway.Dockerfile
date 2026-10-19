@@ -5,17 +5,21 @@
 # 1) Frontend production build. Every service is reached through the same origin under /svc/<name>.
 FROM node:22-alpine AS frontend
 ARG PUBLIC_URL
+# Shown on the feedback, terms and privacy pages; empty hides the address.
+ARG SUPPORT_EMAIL=
 WORKDIR /app
-COPY frontend/package.json frontend/package-lock.json ./
+COPY TalkTrading-main/TalkTrading-main/package.json TalkTrading-main/TalkTrading-main/package-lock.json ./
 RUN npm ci --no-audit --no-fund
-COPY frontend/ ./
+COPY TalkTrading-main/TalkTrading-main/ ./
 ENV VITE_NEWS_SERVICE_URL=${PUBLIC_URL}/svc/news \
     VITE_STORY_SERVICE_URL=${PUBLIC_URL}/svc/story \
     VITE_CHART_SERVICE_URL=${PUBLIC_URL}/svc/chart \
     VITE_E2EE_SERVICE_URL=${PUBLIC_URL}/svc/e2ee \
     VITE_POST_SERVICE_URL=${PUBLIC_URL}/svc/post \
     VITE_COMMUNITY_SERVICE_URL=${PUBLIC_URL}/svc/community \
-    VITE_EXPLORE_SERVICE_URL=${PUBLIC_URL}/svc/explore
+    VITE_EXPLORE_SERVICE_URL=${PUBLIC_URL}/svc/explore \
+    VITE_REEL_SERVICE_URL=${PUBLIC_URL}/svc/reel \
+    VITE_SUPPORT_EMAIL=${SUPPORT_EMAIL}
 RUN npm run build
 
 # 2) Caddy with the rate-limit plugin (not in the standard image).

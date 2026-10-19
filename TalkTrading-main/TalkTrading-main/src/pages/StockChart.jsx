@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { useParams, useLocation, Link } from 'react-router-dom'
 import { useWatchlist } from '../context/WatchlistContext'
 import { useTheme } from '../context/ThemeContext'
 import Button from '../components/ui/Button'
-import mockTickers from '../data/mockTickers'
+import { getQuote, getSymbols } from '../services/chartService'
 
+// TradingView symbol format for each ticker — used for the embedded chart widget
 const symbolMap = {
   AAPL: 'NASDAQ:AAPL', TSLA: 'NASDAQ:TSLA', NVDA: 'NASDAQ:NVDA', AMZN: 'NASDAQ:AMZN',
   META: 'NASDAQ:META', GOOGL: 'NASDAQ:GOOGL', MSFT: 'NASDAQ:MSFT', AMD: 'NASDAQ:AMD',
@@ -14,23 +15,88 @@ const symbolMap = {
   XAGUSD: 'TVC:SILVER', CL: 'NYMEX:CL1!',
 }
 
+// ── Header Skeleton ────────────────────────────────────────────────────────────
+function QuoteSkeleton() {
+  return (
+    <div className="animate-pulse flex flex-col gap-1">
+      <div className="h-6 w-32 bg-white/10 rounded" />
+      <div className="h-4 w-24 bg-white/[0.06] rounded" />
+    </div>
+  )
+}
+
 export default function StockChart() {
-  const { symbol } = useParams()
+  const params = useParams()
+  const location = useLocation()
+  // Extract symbol from wildcard route: /market/* captures everything after /market/
+  const symbol = params['*'] || location.pathname.replace(/^\/market\//, '')
   const { theme } = useTheme()
   const { isInWatchlist, addToWatchlist, removeFromWatchlist } = useWatchlist()
   const containerRef = useRef(null)
-  const ticker = mockTickers.find(t => t.symbol === symbol)
+
+  // Live quote state
+  const [quote, setQuote] = useState(null)
+  const [symbolMeta, setSymbolMeta] = useState(null)
+  const [quoteLoading, setQuoteLoading] = useState(true)
+  const [quoteError, setQuoteError] = useState('')
+
   const tvSymbol = symbolMap[symbol] || symbol
   const inWatchlist = isInWatchlist(symbol)
 
+  // ── Fetch symbol metadata + live quote ─────────────────────────────────────
   useEffect(() => {
-    if (!containerRef.current) return
-    containerRef.current.innerHTML = ''
+    if (!symbol) return
+    setQuoteLoading(true)
+    setQuote(null)
+    setSymbolMeta(null)
+
+    // Fetch symbol metadata and quote in parallel
+    Promise.allSettled([
+      getSymbols(),
+      getQuote(symbol),
+    ]).then(([symbolsResult, quoteResult]) => {
+      if (symbolsResult.status === 'fulfilled') {
+        const found = symbolsResult.value?.items?.find(s => s.symbol === symbol)
+        setSymbolMeta(found || null)
+      }
+      if (quoteResult.status === 'fulfilled') {
+        setQuote(quoteResult.value)
+        setQuoteError('')
+      } else {
+        setQuoteError(`Live price unavailable: ${quoteResult.reason?.message}`)
+      }
+    }).finally(() => setQuoteLoading(false))
+  }, [symbol])
+
+  // ── Auto-refresh quote every 60s ───────────────────────────────────────────
+  useEffect(() => {
+    if (!symbol) return
+    const interval = setInterval(() => {
+      getQuote(symbol)
+        .then(q => { setQuote(q); setQuoteError('') })
+        .catch(err => setQuoteError(`Live price unavailable: ${err.message}`))
+    }, 60_000)
+    return () => clearInterval(interval)
+  }, [symbol])
+
+  // ── Inject TradingView Advanced Chart Widget ───────────────────────────────
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    // Insert on the next tick and cancel on cleanup, so a run that is immediately replaced
+    // (symbol/theme change, React's double effect in dev) never loads a script whose
+    // container is already gone - the TradingView embed throws in that case.
+    const wrapper = document.createElement('div')
+    wrapper.className = 'tradingview-widget-container'   // the embed script looks for this on its parent
+    wrapper.style.height = '100%'
+    wrapper.style.width = '100%'
 
     const widgetDiv = document.createElement('div')
     widgetDiv.className = 'tradingview-widget-container__widget'
     widgetDiv.style.height = '100%'
     widgetDiv.style.width = '100%'
+    widgetDiv.style.minHeight = '600px'
 
     const script = document.createElement('script')
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js'
@@ -51,65 +117,108 @@ export default function StockChart() {
       support_host: 'https://www.tradingview.com',
     })
 
-    containerRef.current.appendChild(widgetDiv)
-    containerRef.current.appendChild(script)
+    wrapper.appendChild(widgetDiv)
+    wrapper.appendChild(script)
+    const timer = setTimeout(() => container.appendChild(wrapper), 0)
+    return () => {
+      clearTimeout(timer)
+      wrapper.remove()
+    }
   }, [tvSymbol, theme])
 
-  if (!ticker) {
-    return (
-      <div className="p-8 text-center">
-        <p className="text-on-surface-muted mb-4">Ticker "{symbol}" not found</p>
-        <Link to="/market" className="text-primary hover:underline">← Back to Market</Link>
-      </div>
-    )
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  const displayName = symbolMeta?.name || symbol
+
+  const formatPrice = price => {
+    if (!price && price !== 0) return '—'
+    const cat = symbolMeta?.category
+    if (cat === 'crypto' && price > 1000)
+      return `$${price.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+    if (cat === 'forex') return price.toFixed(4)
+    return `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   }
 
+  const change = quote?.change
+  const changePct = quote?.change_percent
+  const isPositive = (changePct ?? 0) >= 0
+
   return (
-    <div className="max-w-[1920px] mx-auto">
+    <div className="flex flex-col h-[calc(100vh-4rem)] w-full max-w-[1920px] mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+      <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-white/[0.06]">
         <div className="flex items-center gap-3">
           <Link to="/market" className="text-on-surface-muted hover:text-on-surface transition-colors">
             <span className="material-symbols-outlined">arrow_back</span>
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-mono font-bold text-lg text-on-surface">{ticker.symbol}</h1>
-              <span className="text-sm text-on-surface-muted">{ticker.name}</span>
+              <h1 className="font-mono font-bold text-lg text-on-surface">{symbol}</h1>
+              <span className="text-sm text-on-surface-muted">{displayName}</span>
+              {symbolMeta?.exchange && (
+                <span className="text-[10px] font-mono text-on-surface-muted bg-white/[0.06] px-1.5 py-0.5 rounded">
+                  {symbolMeta.exchange}
+                </span>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <span className="font-mono font-semibold text-on-surface">
-                ${ticker.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-              <span className={`font-mono text-sm ${ticker.changePercent >= 0 ? 'text-bullish' : 'text-bearish'}`}>
-                {ticker.change >= 0 ? '+' : ''}{ticker.change.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                ({ticker.changePercent >= 0 ? '+' : ''}{ticker.changePercent}%)
-              </span>
-            </div>
+
+            {/* Live Quote */}
+            {quoteLoading ? (
+              <QuoteSkeleton />
+            ) : (
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="font-mono font-semibold text-on-surface">
+                  {formatPrice(quote?.price)}
+                </span>
+                {change !== null && change !== undefined && (
+                  <span className={`font-mono text-sm ${isPositive ? 'text-bullish' : 'text-bearish'}`}>
+                    {change >= 0 ? '+' : ''}
+                    {change?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {' '}
+                    ({changePct >= 0 ? '+' : ''}{changePct?.toFixed(2)}%)
+                  </span>
+                )}
+                {quoteError && <span className="text-xs text-warning">{quoteError}</span>}
+                {quote?.price != null && !quoteError && (
+                  <span className="flex items-center gap-1 text-[10px] font-mono text-bullish/80 uppercase tracking-widest">
+                    <span className="w-1.5 h-1.5 rounded-full bg-bullish animate-pulse inline-block" />
+                    Live
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
+
         <button
           onClick={() => inWatchlist ? removeFromWatchlist(symbol) : addToWatchlist(symbol)}
-          className={`p-2 rounded-full transition-colors ${inWatchlist ? 'text-primary' : 'text-on-surface-muted hover:text-primary'}`}
+          className={`p-2 rounded-full transition-colors ${
+            inWatchlist ? 'text-primary' : 'text-on-surface-muted hover:text-primary'
+          }`}
         >
-          <span className="material-symbols-outlined" style={inWatchlist ? { fontVariationSettings: "'FILL' 1" } : {}}>star</span>
+          <span
+            className="material-symbols-outlined"
+            style={inWatchlist ? { fontVariationSettings: "'FILL' 1" } : {}}
+          >
+            star
+          </span>
         </button>
       </div>
 
-      {/* TradingView Chart */}
+      {/* TradingView Advanced Chart Widget */}
       <div
         ref={containerRef}
-        className="tradingview-widget-container w-full"
-        style={{ height: 'calc(100dvh - 14rem)' }}
+        className="flex-1 w-full min-h-[550px]"
+        style={{ height: 'calc(100vh - 150px)', minHeight: '550px' }}
       />
 
       {/* Bottom Actions */}
-      <div className="flex items-center justify-between px-4 py-3 border-t border-white/[0.06]">
+      <div className="shrink-0 flex items-center justify-between px-4 py-2 border-t border-white/[0.06]">
         <div className="flex gap-6">
           {[
-            { label: 'Open', value: (ticker.price - ticker.change * 0.3).toFixed(2) },
-            { label: 'High', value: (ticker.price + Math.abs(ticker.change) * 0.8).toFixed(2) },
-            { label: 'Low', value: (ticker.price - Math.abs(ticker.change) * 1.2).toFixed(2) },
+            { label: 'Open',  value: quote?.open  ? formatPrice(quote.open)  : '—' },
+            { label: 'High',  value: quote?.high  ? formatPrice(quote.high)  : '—' },
+            { label: 'Low',   value: quote?.low   ? formatPrice(quote.low)   : '—' },
+            { label: 'Prev Close', value: quote?.prev_close ? formatPrice(quote.prev_close) : '—' },
           ].map(s => (
             <div key={s.label} className="hidden sm:block">
               <div className="text-[10px] text-on-surface-muted uppercase tracking-wider">{s.label}</div>

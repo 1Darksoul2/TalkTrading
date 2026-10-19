@@ -1,0 +1,8 @@
+# The gateway image needs only the web app's source and the Caddyfile. Everything else (secrets in
+# deploy/.env, databases, virtualenvs, and above all a local node_modules built for another OS) stays out.
+*
+!TalkTrading-main/TalkTrading-main
+TalkTrading-main/TalkTrading-main/node_modules
+TalkTrading-main/TalkTrading-main/dist
+TalkTrading-main/TalkTrading-main/.env*
+!deploy/Caddyfile

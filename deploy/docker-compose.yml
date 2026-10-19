@@ -21,6 +21,7 @@ services:
       dockerfile: deploy/docker/gateway.Dockerfile
       args:
         PUBLIC_URL: ${PUBLIC_URL}
+        SUPPORT_EMAIL: ${SUPPORT_EMAIL:-}
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS}
       ACME_EMAIL: ${ACME_EMAIL}
@@ -31,7 +32,7 @@ services:
     volumes:
       - caddy_data:/data
       - caddy_config:/config
-    depends_on: [post, story, news, chart, e2e, community, explore]
+    depends_on: [post, story, news, chart, e2e, community, explore, reel]
 
   db:
     <<: *common
@@ -58,6 +59,10 @@ services:
   post:
     <<: *common
     build: ../backend/post-service-feature-post-module
+    # The service's logging middleware adds a layer on every request and fails after about 1,000
+    # (RecursionError). Without changing its code: two worker processes, each replaced after 800
+    # requests, so one is always answering while the other restarts fresh.
+    entrypoint: ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8004 --workers 2 --limit-max-requests 800"]
     environment:
       PORT: "8004"
       POSTGRES_HOST: db
@@ -111,13 +116,34 @@ services:
     depends_on:
       db: { condition: service_healthy }
 
+  reel:
+    <<: *common
+    # The Reel service ships without a Dockerfile; this one lives in deploy/docker so its folder stays untouched.
+    build:
+      context: ../backend/Reels-main
+      dockerfile: ../../deploy/docker/reel.Dockerfile
+    # Rate limits are per client IP: read it from the gateway's X-Forwarded-For, or every user would share one limit.
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8005", "--proxy-headers", "--forwarded-allow-ips", "*"]
+    environment:
+      APP_ENV: production
+      DEBUG: "false"
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/reel
+      JWT_SECRET_KEY: ${JWT_SECRET}
+      SERVICE_API_KEY: ${REEL_SERVICE_API_KEY}
+      BACKEND_CORS_ORIGINS: '["${PUBLIC_URL}"]'
+    depends_on:
+      db: { condition: service_healthy }
+
   # ── Encrypted chat (unchanged code; Dockerfile copy in deploy/docker) ──
   e2e:
     <<: *common
     build:
       context: ../backend/E2E-main
       dockerfile: ../../deploy/docker/e2e.Dockerfile
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8003"]
+    # Rate limits are per client IP: read it from the gateway's X-Forwarded-For, or every user would share one limit.
+    # No access log here: the chat WebSocket carries the login token in its URL, and uvicorn would log it in full.
+    # The gateway keeps an access log with the token removed.
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8003", "--proxy-headers", "--forwarded-allow-ips", "*", "--no-access-log"]
     environment:
       DEBUG: "false"
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/e2e

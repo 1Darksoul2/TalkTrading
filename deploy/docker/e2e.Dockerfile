@@ -1,4 +1,5 @@
 # Copy of backend/E2E-main/Dockerfile, kept here so its folder stays untouched; paired with e2e.Dockerfile.dockerignore.
+# One addition: greenlet, which the service's async database driver needs and SQLAlchemy 2.1 no longer installs.
 FROM python:3.11-slim as base
 
 # Set environment variables
@@ -17,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy and install dependencies
 COPY requirements.txt $WORKDIR/
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt greenlet
 
 # Copy project files
 COPY . $WORKDIR/

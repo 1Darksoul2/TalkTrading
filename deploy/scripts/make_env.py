@@ -51,12 +51,16 @@ def main():
         "SITE_ADDRESS": site,
         "PUBLIC_URL": public,
         "ACME_EMAIL": args.email or "unused@example.invalid",   # certificates are only requested for a real domain
+        # Where testers send feedback, reports and privacy requests (shown in the app).
+        "SUPPORT_EMAIL": args.email or "",
         "HTTP_PORT": http_port,
         "HTTPS_PORT": https_port,
         "POSTGRES_USER": "talktrading",
         "POSTGRES_PASSWORD": secrets.token_hex(24),
         # Signs every login token; shared by Post (issues them) and Story/News/Chat (check them).
         "JWT_SECRET": secrets.token_hex(32),
+        # Lets trusted internal callers moderate reels (never sent to browsers).
+        "REEL_SERVICE_API_KEY": secrets.token_hex(32),
         # How long a login lasts (minutes). 10080 = 7 days.
         "LOGIN_LIFETIME_MINUTES": "10080",
         "NEWS_PROVIDER": "finnhub",
@@ -66,6 +70,10 @@ def main():
         f.write("# TalkTrading production settings. Keep this file private and backed up.\n")
         for k, v in values.items():
             f.write(f"{k}={v}\n")
+        f.write(
+            "\n# News: put your Finnhub key in NEWS_API_KEY above (free at https://finnhub.io).\n"
+            "# Prices and charts come from TradingView and need no key.\n"
+        )
     print(f"Wrote {os.path.normpath(ENV_PATH)} for {public}")
     if not news_key:
         print("Note: NEWS_API_KEY is empty - add a free key from https://finnhub.io to show live news.")
