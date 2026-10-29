@@ -38,6 +38,29 @@ if os.name == "nt":
 # Root workspace directory
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+
+def load_root_env() -> List[str]:
+    """Read KEY=VALUE lines from the project's .env (see .env.example) into this process's environment.
+
+    Every service is started with this environment, so keys set once here (news API key, mail
+    server, login secret) reach all of them. Values already set in the real environment win.
+    """
+    path = os.path.join(ROOT_DIR, ".env")
+    loaded: List[str] = []
+    if not os.path.isfile(path):
+        return loaded
+    with open(path, encoding="utf-8") as f:
+        for raw in f:
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key, value = key.strip(), value.strip().strip('"').strip("'")
+            if key and value and key not in os.environ:
+                os.environ[key] = value
+                loaded.append(key)
+    return loaded
+
 # ANSI color codes
 CYAN = "\033[96m"
 GREEN = "\033[92m"
@@ -111,12 +134,12 @@ def java_major_version(java_home: str) -> int:
         return 0
 
 def find_java_home() -> Optional[str]:
-    """The newest installed JDK 17+ (Spring Boot 3 needs 17+), preferring JAVA_HOME when it qualifies."""
+    """The newest installed JDK 23+ (both pom.xml files compile with <java.version>23), preferring JAVA_HOME when it qualifies."""
     candidates = [os.environ["JAVA_HOME"]] if os.environ.get("JAVA_HOME") else []
     for base in (r"C:\Program Files\Java", r"C:\Program Files\Microsoft", r"C:\Program Files\Eclipse Adoptium", "/usr/lib/jvm"):
         candidates += glob.glob(os.path.join(base, "*jdk*"))
     qualified = [(java_major_version(c), c) for c in candidates]
-    qualified = [(v, c) for v, c in qualified if v >= 17]
+    qualified = [(v, c) for v, c in qualified if v >= 23]
     if not qualified:
         return None
     env_home = os.environ.get("JAVA_HOME")
@@ -404,6 +427,12 @@ def main():
     parser.add_argument("--kill-existing", action="store_true", help="Automatically kill any existing processes on required ports before starting")
     args = parser.parse_args()
 
+    loaded = load_root_env()
+    if loaded:
+        print(f"{GRAY}[CONFIG] Settings from .env : {', '.join(sorted(loaded))}{RESET}")
+    if not os.environ.get("NEWS_API_KEY"):
+        print(f"{YELLOW}[NOTICE] NEWS_API_KEY is not set: the News page stays empty. Add it to .env (see .env.example).{RESET}")
+
     python_bin = find_python_executable()
     npm_bin = find_npm_executable()
     node_bin = find_node_executable()
@@ -477,7 +506,10 @@ def main():
             tag="POST",
             port=8004,
             cwd=os.path.join(ROOT_DIR, "backend", "post-service-feature-post-module"),
-            command=[python_bin, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8004"],
+            # Two workers, each replaced after 800 requests: the service's logging middleware fails after
+            # about 1,000 requests in one process (RecursionError), and its code is not changed here.
+            command=[python_bin, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8004",
+                     "--workers", "2", "--limit-max-requests", "800"],
             health_url="http://127.0.0.1:8004/health",
             docs_url="http://127.0.0.1:8004/docs",
             color=BLUE,
@@ -488,6 +520,21 @@ def main():
                 "DATABASE_URL": "sqlite:///./post.db"
             }
         ),
+        ServiceDef(
+            name="Reel Service",
+            tag="REEL",
+            port=8005,
+            cwd=os.path.join(ROOT_DIR, "backend", "Reels-main"),
+            command=[python_bin, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8005"],
+            health_url="http://127.0.0.1:8005/api/v1/health",
+            docs_url="http://127.0.0.1:8005/docs",
+            color=CYAN,
+            env_overrides={
+                "DATABASE_URL": "sqlite:///./reel.db",
+                # Verifies the tokens Post Service issues at login (same secret, HS256).
+                "JWT_SECRET_KEY": os.environ.get("SECRET_KEY", "super_secret_jwt_key_change_in_production"),
+            }
+        ),
     ]
 
     # Community and Explore are Java/Spring Boot services, started natively through Maven.
@@ -496,11 +543,11 @@ def main():
         services.extend(java_service_defs(mvn, java_home))
     else:
         print(f"{YELLOW}[NOTICE] Skipping Community and Explore: "
-              f"{'Maven' if not mvn else 'JDK 17+'} not found. Install it, or set "
+              f"{'Maven' if not mvn else 'JDK 23+'} not found. Install it, or set "
               f"{'MAVEN_HOME (or unpack Maven into .tools/)' if not mvn else 'JAVA_HOME'}.{RESET}")
 
     if not args.no_frontend:
-        frontend_dir = os.path.join(ROOT_DIR, "frontend")
+        frontend_dir = os.path.join(ROOT_DIR, "TalkTrading-main", "TalkTrading-main")
         vite_script = os.path.join(frontend_dir, "node_modules", "vite", "bin", "vite.js")
         
         if npm_bin:

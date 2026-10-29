@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import ThemeToggle from './ThemeToggle'
 import ProfileMenu from './ProfileMenu'
+import NotificationBell from './NotificationBell'
 import { useTheme } from '../../context/ThemeContext'
 import logo from '../../assets/logo.png'
 import logoLight from '../../assets/logo-light.png'
@@ -65,11 +66,21 @@ export default function TopAppBar() {
 
         {/* Actions */}
         <div className="flex items-center gap-1">
+          {/* Phones have no side bar: Market and Create sit here instead */}
+          {[{ path: '/market', icon: 'show_chart', label: 'Market' }, { path: '/create', icon: 'add_box', label: 'Create' }].map(item => (
+            <Link
+              key={item.path}
+              to={item.path}
+              aria-label={item.label}
+              className={`md:hidden p-2 rounded-full transition-all ${
+                location.pathname.startsWith(item.path) ? 'text-primary bg-primary/10' : 'text-on-surface-muted hover:text-on-surface hover:bg-white/5'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+            </Link>
+          ))}
           <ThemeToggle />
-          <button className="p-2 rounded-full text-on-surface-muted hover:text-on-surface hover:bg-white/5 transition-all relative">
-            <span className="material-symbols-outlined text-[20px]">notifications</span>
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
-          </button>
+          <NotificationBell />
           <ProfileMenu />
         </div>
       </div>

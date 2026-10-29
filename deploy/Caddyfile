@@ -80,7 +80,15 @@
 		reverse_proxy e2e:8003
 	}
 	handle_path /svc/post/* {
-		reverse_proxy post:8004
+		reverse_proxy post:8004 {
+			# The Post Service runs two workers that each restart after 800 requests (see docker-compose.yml).
+			# A read request that lands on a worker just as it restarts is tried again on the other one.
+			lb_retries 2
+			lb_try_duration 3s
+		}
+	}
+	handle_path /svc/reel/* {
+		reverse_proxy reel:8005
 	}
 	handle_path /svc/community/* {
 		forward_auth story:8001 {

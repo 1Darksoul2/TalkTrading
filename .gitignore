@@ -37,5 +37,5 @@ Thumbs.db
 .idea/
 .vscode/
 
-# Reviewed copy of the Explore service with its own git history (see NEW_SERVICES_REVIEW.md)
+# Reviewed copy of the Explore service with its own git history (see docs/history/NEW_SERVICES_REVIEW.md)
 explore/

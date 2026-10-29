@@ -38,6 +38,7 @@
   /* Semantic */
   --color-bullish: #22C55E;
   --color-bearish: #EF4444;
+  --color-warning: #F59E0B;
   --color-error: #FFB4AB;
   --color-secondary: #C6C6C9;
   --color-tertiary: #CDCED4;
@@ -106,16 +107,26 @@ body {
 .light {
   --color-background: #F5F5F7;
   --color-surface: #F5F5F7;
+  --color-surface-dim: #EBEBEE;
+  --color-surface-bright: #FFFFFF;
   --color-surface-card: #FFFFFF;
+  --color-surface-container-lowest: #FFFFFF;
+  --color-surface-container-low: #F7F7F9;
   --color-surface-container: #F0F0F2;
   --color-surface-container-high: #E8E8EA;
   --color-surface-container-highest: #E0E0E2;
   --color-surface-variant: #E5E5E7;
   --color-on-surface: #1A1C1E;
   --color-on-surface-variant: #49454F;
-  --color-on-surface-muted: #6B7280;
+  --color-on-surface-muted: #5B6270;
   --color-outline: #79747E;
   --color-outline-variant: #CAC4D0;
+  /* Deeper gold, green and red so text in these colours stays readable on white (WCAG AA, 4.5:1) */
+  --color-primary: #7A5E00;
+  --color-on-primary: #FFFFFF;
+  --color-bullish: #167C3A;
+  --color-bearish: #C81E1E;
+  --color-warning: #8A4B00;
 }
 
 /* ===== Black (OLED) Theme Overrides ===== */
